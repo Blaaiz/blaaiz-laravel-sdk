@@ -77,19 +77,7 @@ jobs:
 
     - name: Run tests (PestPHP)
       run: |
-        # Try with coverage first, fallback to regular tests if coverage fails
-        if ! vendor/bin/pest --coverage --coverage-clover=coverage.xml --coverage-html=coverage-html --coverage-text; then
-          echo "Coverage failed, running tests without coverage"
           vendor/bin/pest
-        fi
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        files: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella-php-${{ matrix.php-version }}-laravel-${{ matrix.laravel-version }}
-        fail_ci_if_error: false
 
   integration-test:
     runs-on: ubuntu-22.04
