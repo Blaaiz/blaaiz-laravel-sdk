@@ -36,7 +36,7 @@
     "guzzlehttp/guzzle": "^7.0"
   },
   "require-dev": {
-    "pestphp/pest": "^3.0",
+    "pestphp/pest": "^3.0", 
     "phpunit/phpunit": "^11.0",
     "orchestra/testbench": "^9.0|^10.0",
     "mockery/mockery": "^1.5",
