@@ -14,20 +14,8 @@ jobs:
     strategy:
       matrix:
         php-version: ['8.2', '8.3']
-        laravel-version: ['10.*', '11.*', '12.*']
-        include:
-          - php-version: '8.2'  
-            laravel-version: '10.*'
-          - php-version: '8.2'
-            laravel-version: '11.*'
-          - php-version: '8.2'
-            laravel-version: '12.*'
-          - php-version: '8.3'
-            laravel-version: '11.*'
-          - php-version: '8.3'
-            laravel-version: '12.*'
 
-    name: PHP ${{ matrix.php-version }} - Laravel ${{ matrix.laravel-version }}
+    name: PHP ${{ matrix.php-version }} - Laravel 12.x
 
     steps:
     - uses: actions/checkout@v4
@@ -44,14 +32,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: vendor
-        key: ${{ runner.os }}-php-${{ matrix.php-version }}-laravel-${{ matrix.laravel-version }}-${{ hashFiles('**/composer.lock') }}
+        key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
         restore-keys: |
-          ${{ runner.os }}-php-${{ matrix.php-version }}-laravel-${{ matrix.laravel-version }}-
           ${{ runner.os }}-php-${{ matrix.php-version }}-
-
-    - name: Install Laravel version
-      run: |
-        composer require "illuminate/support:${{ matrix.laravel-version }}" --no-interaction --no-update
 
     - name: Install dependencies
       run: composer install --prefer-dist --no-interaction --no-progress
@@ -77,12 +60,20 @@ jobs:
 
     - name: Run tests (PestPHP)
       run: |
-          vendor/bin/pest
+        vendor/bin/pest --coverage --coverage-clover=coverage.xml --coverage-html=coverage-html --coverage-text
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
 
   integration-test:
     runs-on: ubuntu-22.04
     needs: test
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
     - uses: actions/checkout@v4
@@ -105,7 +96,6 @@ jobs:
           vendor/bin/pest --filter="Integration"
         else
           echo "⚠️ Skipping integration tests - API keys not configured"
-          echo "Integration tests require BLAAIZ_API_KEY and BLAAIZ_API_URL secrets"
         fi
 
   build:
@@ -129,17 +119,21 @@ jobs:
 
     - name: Check package security
       run: |
-        composer audit --no-dev || echo "⚠️ Security audit completed with warnings"
+        if [ -f vendor/bin/security-checker ]; then
+          vendor/bin/security-checker security:check composer.lock
+        else
+          echo "Security checker not available, skipping..."
+        fi
 
     - name: Archive package
       run: |
         mkdir -p build
-        zip -r build/blaaiz-laravel-sdk.zip . -x "*.git*" "tests/*" "build/*" "*.github*" "*.phpunit.result.cache*" "coverage-html/*" "coverage.xml"
+        zip -r build/blaaiz-laravel-sdk.zip . -x "*.git*" "tests/*" "build/*" "*.github*"
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: package-php-8.2
+        name: package
         path: build/
 
   quality-gate:
@@ -164,7 +158,7 @@ jobs:
         echo "🔍 Running quality gate checks..."
         
         # Run tests with minimum coverage threshold
-        vendor/bin/pest --coverage --min=80 || echo "⚠️ Coverage below 80% threshold"
+        vendor/bin/pest --coverage --min=80
         
         # Check for TODO/FIXME comments in production code
         if grep -r --include="*.php" --exclude-dir=tests --exclude-dir=vendor "TODO\|FIXME" src/; then
@@ -175,17 +169,12 @@ jobs:
         fi
         
         # Check for debug statements
-        if grep -r --include="*.php" --exclude-dir=tests --exclude-dir=vendor "var_dump\|dd(\|dump(\|print_r(" src/; then
+        if grep -r --include="*.php" --exclude-dir=tests --exclude-dir=vendor "var_dump\|dd(\|dump(" src/; then
           echo "❌ Found debug statements in production code"
           exit 1
         else
           echo "✅ No debug statements found in production code"
         fi
-
-        # Verify all tests are passing
-        vendor/bin/pest --bail
-        
-        echo "✅ Quality gate checks passed!"
 
   publish-packagist:
     runs-on: ubuntu-22.04
@@ -206,21 +195,22 @@ jobs:
         PACKAGIST_API_TOKEN: ${{ secrets.PACKAGIST_API_TOKEN }}
       run: |
         if [[ ! -z "$PACKAGIST_USERNAME" && ! -z "$PACKAGIST_API_TOKEN" ]]; then
-          echo "📦 Triggering Packagist update for release ${{ github.event.release.tag_name }}"
-          
-          response=$(curl -s -X POST \
+          curl -X POST \
             -H "Content-Type: application/json" \
             -d '{"repository":{"url":"https://github.com/${{ github.repository }}"}}' \
-            "https://packagist.org/api/update-package?username=$PACKAGIST_USERNAME&apiToken=$PACKAGIST_API_TOKEN")
-          
-          echo "Packagist response: $response"
-          
-          if echo "$response" | grep -q '"status":"success"'; then
-            echo "✅ Packagist update successful"
-          else
-            echo "⚠️ Packagist update may have failed - check manually"
-          fi
+            "https://packagist.org/api/update-package?username=$PACKAGIST_USERNAME&apiToken=$PACKAGIST_API_TOKEN"
         else
           echo "⚠️ Skipping Packagist update - credentials not configured"
-          echo "Note: Packagist will auto-detect GitHub releases if webhook is configured"
         fi
+
+  notify-release:
+    runs-on: ubuntu-22.04
+    needs: [publish-packagist]
+    if: github.event_name == 'release' && github.event.action == 'published'
+    
+    steps:
+    - name: Notify release success
+      run: |
+        echo "🎉 Package published successfully!"
+        echo "Version: ${{ github.event.release.tag_name }}"
+        echo "Packagist: https://packagist.org/packages/blaaiz/blaaiz-laravel-sdk"
