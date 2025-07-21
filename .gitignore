@@ -1,0 +1,110 @@
+# Composer dependencies
+/vendor/
+composer.lock
+
+# IDE files
+/.idea/
+/.vscode/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# PHPUnit
+/phpunit.xml
+/.phpunit.result.cache
+/coverage/
+/.phpunit.cache
+
+# PHPStan
+/phpstan.neon.dist
+/.phpstan.cache
+
+# Pint
+/.php-cs-fixer.cache
+/pint.json
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.backup
+.env.production
+
+# Laravel specific (for testing)
+/bootstrap/compiled.php
+/bootstrap/cache
+/storage/app
+/storage/framework/cache
+/storage/framework/sessions
+/storage/framework/views
+/storage/logs
+
+# Node.js (for documentation build)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Documentation build
+/docs/build/
+/docs/.vuepress/dist/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Test artifacts
+/.testdox
+/tests/coverage
+
+# Build artifacts
+/build/
+/dist/
+
+# Local configuration overrides
+/config/local.php
+
+# Backup files
+*.bak
+*.backup
+
+# Lock files (except composer.lock which should be ignored above)
+*.lock
+
+# Cache directories
+/.cache/
+/cache/
+
+# Profiling files
+*.prof
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# Vagrant
+.vagrant/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Local development settings
+.local
+
+# Package managers
+pnpm-lock.yaml
+bun.lockb
