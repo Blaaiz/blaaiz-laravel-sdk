@@ -52,7 +52,16 @@ class BlaaizClient
 
             $response = $this->httpClient->request(strtoupper($method), $endpoint, $options);
 
-            $responseData = json_decode($response->getBody()->getContents(), true);
+            $responseBody = $response->getBody()->getContents();
+            $responseData = json_decode($responseBody, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new BlaaizException(
+                    'Failed to parse API response: ' . json_last_error_msg(),
+                    $response->getStatusCode(),
+                    'PARSE_ERROR'
+                );
+            }
 
             if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300) {
                 return [

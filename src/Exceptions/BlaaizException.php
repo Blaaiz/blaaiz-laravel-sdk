@@ -43,8 +43,11 @@ class BlaaizException extends Exception
             'message' => $this->getMessage(),
             'status' => $this->status,
             'error_code' => $this->errorCode,
-            'file' => $this->getFile(),
-            'line' => $this->getLine(),
         ];
+    }
+
+    public function toJson(): string
+    {
+        return json_encode($this->toArray());
     }
 }

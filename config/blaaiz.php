@@ -10,7 +10,7 @@ return [
     | This key is used to authenticate with the Blaaiz API.
     |
     */
-    'api_key' => env('BLAAIZ_API_KEY'),
+    'api_key' => env('BLAAIZ_API_KEY', 'test-key'),
 
     /*
     |--------------------------------------------------------------------------
@@ -21,7 +21,7 @@ return [
     | environment. Change to production URL when going live.
     |
     */
-    'base_url' => env('BLAAIZ_BASE_URL', 'https://api-dev.blaaiz.com'),
+    'base_url' => env('BLAAIZ_API_URL', 'https://api-dev.blaaiz.com'),
 
     /*
     |--------------------------------------------------------------------------

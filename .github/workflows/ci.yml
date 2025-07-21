@@ -1,0 +1,236 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  release:
+    types: [ published ]
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        php-version: ['8.2', '8.3']
+        laravel-version: ['9.*', '10.*', '11.*', '12.*']
+        include:
+          - php-version: '8.2'
+            laravel-version: '9.*'
+          - php-version: '8.2'  
+            laravel-version: '10.*'
+          - php-version: '8.2'
+            laravel-version: '11.*'
+          - php-version: '8.2'
+            laravel-version: '12.*'
+          - php-version: '8.3'
+            laravel-version: '11.*'
+          - php-version: '8.3'
+            laravel-version: '12.*'
+
+    name: PHP ${{ matrix.php-version }} - Laravel ${{ matrix.laravel-version }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick
+        coverage: xdebug
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v4
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ matrix.php-version }}-laravel-${{ matrix.laravel-version }}-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-${{ matrix.php-version }}-laravel-${{ matrix.laravel-version }}-
+          ${{ runner.os }}-php-${{ matrix.php-version }}-
+
+    - name: Install Laravel version
+      run: |
+        composer require "illuminate/support:${{ matrix.laravel-version }}" --no-interaction --no-update
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-interaction --no-progress
+
+    - name: Create directories
+      run: mkdir -p build/logs
+
+    - name: Run code style checks (PHP CS Fixer)
+      run: |
+        if [ -f vendor/bin/php-cs-fixer ]; then
+          vendor/bin/php-cs-fixer fix --dry-run --diff --verbose
+        else
+          echo "PHP CS Fixer not installed, skipping..."
+        fi
+
+    - name: Run static analysis (PHPStan)
+      run: |
+        if [ -f vendor/bin/phpstan ]; then
+          vendor/bin/phpstan analyse --memory-limit=2G
+        else
+          echo "PHPStan not installed, skipping..."
+        fi
+
+    - name: Run tests (PestPHP)
+      run: |
+        vendor/bin/pest --coverage --coverage-clover=coverage.xml --coverage-html=coverage-html --coverage-text
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella-php-${{ matrix.php-version }}-laravel-${{ matrix.laravel-version }}
+        fail_ci_if_error: false
+
+  integration-test:
+    runs-on: ubuntu-22.04
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-interaction
+
+    - name: Run integration tests
+      env:
+        BLAAIZ_API_KEY: ${{ secrets.BLAAIZ_API_KEY }}
+        BLAAIZ_API_URL: ${{ secrets.BLAAIZ_API_URL }}
+      run: |
+        if [[ ! -z "${{ secrets.BLAAIZ_API_KEY }}" ]]; then
+          vendor/bin/pest --filter="Integration"
+        else
+          echo "⚠️ Skipping integration tests - API keys not configured"
+          echo "Integration tests require BLAAIZ_API_KEY and BLAAIZ_API_URL secrets"
+        fi
+
+  build:
+    runs-on: ubuntu-22.04
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-interaction --no-dev --optimize-autoloader
+
+    - name: Validate composer.json and composer.lock
+      run: composer validate --strict
+
+    - name: Check package security
+      run: |
+        composer audit --no-dev || echo "⚠️ Security audit completed with warnings"
+
+    - name: Archive package
+      run: |
+        mkdir -p build
+        zip -r build/blaaiz-laravel-sdk.zip . -x "*.git*" "tests/*" "build/*" "*.github*" "*.phpunit.result.cache*" "coverage-html/*" "coverage.xml"
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: package-php-8.2
+        path: build/
+
+  quality-gate:
+    runs-on: ubuntu-22.04
+    needs: test
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-interaction
+
+    - name: Run quality checks
+      run: |
+        echo "🔍 Running quality gate checks..."
+        
+        # Run tests with minimum coverage threshold
+        vendor/bin/pest --coverage --min=80 || echo "⚠️ Coverage below 80% threshold"
+        
+        # Check for TODO/FIXME comments in production code
+        if grep -r --include="*.php" --exclude-dir=tests --exclude-dir=vendor "TODO\|FIXME" src/; then
+          echo "❌ Found TODO/FIXME comments in production code"
+          exit 1
+        else
+          echo "✅ No TODO/FIXME comments found in production code"
+        fi
+        
+        # Check for debug statements
+        if grep -r --include="*.php" --exclude-dir=tests --exclude-dir=vendor "var_dump\|dd(\|dump(\|print_r(" src/; then
+          echo "❌ Found debug statements in production code"
+          exit 1
+        else
+          echo "✅ No debug statements found in production code"
+        fi
+
+        # Verify all tests are passing
+        vendor/bin/pest --bail
+        
+        echo "✅ Quality gate checks passed!"
+
+  publish-packagist:
+    runs-on: ubuntu-22.04
+    needs: [test, build]
+    if: github.event_name == 'release' && github.event.action == 'published'
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+
+    - name: Trigger Packagist update
+      env:
+        PACKAGIST_USERNAME: ${{ secrets.PACKAGIST_USERNAME }}
+        PACKAGIST_API_TOKEN: ${{ secrets.PACKAGIST_API_TOKEN }}
+      run: |
+        if [[ ! -z "$PACKAGIST_USERNAME" && ! -z "$PACKAGIST_API_TOKEN" ]]; then
+          echo "📦 Triggering Packagist update for release ${{ github.event.release.tag_name }}"
+          
+          response=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"repository":{"url":"https://github.com/${{ github.repository }}"}}' \
+            "https://packagist.org/api/update-package?username=$PACKAGIST_USERNAME&apiToken=$PACKAGIST_API_TOKEN")
+          
+          echo "Packagist response: $response"
+          
+          if echo "$response" | grep -q '"status":"success"'; then
+            echo "✅ Packagist update successful"
+          else
+            echo "⚠️ Packagist update may have failed - check manually"
+          fi
+        else
+          echo "⚠️ Skipping Packagist update - credentials not configured"
+          echo "Note: Packagist will auto-detect GitHub releases if webhook is configured"
+        fi

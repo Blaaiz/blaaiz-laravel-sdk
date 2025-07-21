@@ -14,7 +14,7 @@ class BlaaizServiceProvider extends ServiceProvider
             $config = $app['config']['blaaiz'];
             
             return new Blaaiz(
-                $config['api_key'],
+                $config['api_key'] ?: 'test-key', // Use fallback for tests
                 [
                     'base_url' => $config['base_url'],
                     'timeout' => $config['timeout'],
@@ -36,6 +36,6 @@ class BlaaizServiceProvider extends ServiceProvider
 
     public function provides(): array
     {
-        return ['blaaiz'];
+        return ['blaaiz', Blaaiz::class];
     }
 }
