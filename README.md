@@ -5,7 +5,7 @@ A comprehensive Laravel SDK for the Blaaiz RaaS (Remittance as a Service) API. T
 ## Installation
 
 ```bash
-composer require blaaiz/laravel-sdk
+composer require blaaiz/blaaiz-laravel-sdk
 ```
 
 ## Quick Start
