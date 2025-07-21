@@ -37,16 +37,15 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-php-${{ matrix.php-version }}-laravel-${{ matrix.laravel-version }}-
 
-    - name: Install Laravel version
+    - name: Install dependencies for Laravel version
       run: |
         if [[ "${{ matrix.laravel-version }}" == "12.*" ]]; then
-          composer require "orchestra/testbench:^10.0" --no-interaction --no-update
+          composer require "orchestra/testbench:^10.0" --no-interaction --update-with-dependencies
         elif [[ "${{ matrix.laravel-version }}" == "11.*" ]]; then
-          composer require "orchestra/testbench:^9.0" --no-interaction --no-update
+          composer require "orchestra/testbench:^9.0" --no-interaction --update-with-dependencies
+        else
+          composer install --prefer-dist --no-interaction --no-progress
         fi
-
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-interaction --no-progress
 
     - name: Create directories
       run: mkdir -p build/logs
