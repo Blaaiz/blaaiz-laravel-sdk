@@ -139,7 +139,7 @@ class CustomerService extends BaseService
         }
     }
 
-    private function processFileInput($file, ?string &$contentType, ?string &$filename): array
+    private function processFileInput(mixed $file, ?string &$contentType, ?string &$filename): array
     {
         if (is_string($file)) {
             if (str_starts_with($file, 'data:')) {

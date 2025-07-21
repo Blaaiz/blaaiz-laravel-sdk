@@ -107,7 +107,7 @@ class BlaaizClient
         }
     }
 
-    public function uploadFile(string $presignedUrl, $fileContent, ?string $contentType = null, ?string $filename = null): array
+    public function uploadFile(string $presignedUrl, string $fileContent, ?string $contentType = null, ?string $filename = null): array
     {
         try {
             $headers = [];
@@ -182,7 +182,8 @@ class BlaaizClient
             }
 
             if (!$filename) {
-                $filename = basename(parse_url($url, PHP_URL_PATH));
+                $urlPath = parse_url($url, PHP_URL_PATH);
+                $filename = $urlPath ? basename($urlPath) : 'download';
 
                 if (!pathinfo($filename, PATHINFO_EXTENSION) && $contentType) {
                     $extension = $this->getExtensionFromContentType($contentType);

@@ -9,7 +9,7 @@ class BlaaizException extends Exception
     protected ?int $status;
     protected ?string $errorCode;
 
-    public function __construct(string $message = "", ?int $status = null, ?string $errorCode = null, Exception $previous = null)
+    public function __construct(string $message = "", ?int $status = null, ?string $errorCode = null, ?Exception $previous = null)
     {
         parent::__construct($message, 0, $previous);
         
@@ -48,6 +48,10 @@ class BlaaizException extends Exception
 
     public function toJson(): string
     {
-        return json_encode($this->toArray());
+        $json = json_encode($this->toArray());
+        if ($json === false) {
+            throw new \RuntimeException('Failed to encode exception to JSON');
+        }
+        return $json;
     }
 }

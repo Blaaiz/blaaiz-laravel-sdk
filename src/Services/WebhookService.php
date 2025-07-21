@@ -30,7 +30,7 @@ class WebhookService extends BaseService
         return $this->client->makeRequest('POST', '/api/external/webhook/replay', $replayData);
     }
 
-    public function verifySignature($payload, string $signature, string $secret): bool
+    public function verifySignature(mixed $payload, string $signature, string $secret): bool
     {
         if (empty($payload)) {
             throw new BlaaizException('Payload is required for signature verification');
@@ -45,13 +45,16 @@ class WebhookService extends BaseService
         }
 
         $payloadString = is_string($payload) ? $payload : json_encode($payload);
+        if ($payloadString === false) {
+            throw new BlaaizException('Failed to encode payload to JSON');
+        }
         $cleanSignature = str_replace('sha256=', '', $signature);
         $expectedSignature = hash_hmac('sha256', $payloadString, $secret);
 
         return hash_equals($expectedSignature, $cleanSignature);
     }
 
-    public function constructEvent($payload, string $signature, string $secret): array
+    public function constructEvent(mixed $payload, string $signature, string $secret): array
     {
         if (!$this->verifySignature($payload, $signature, $secret)) {
             throw new BlaaizException('Invalid webhook signature');
