@@ -139,4 +139,59 @@ class Blaaiz
             );
         }
     }
+
+    public function customers(): CustomerService
+    {
+        return $this->customers;
+    }
+
+    public function collections(): CollectionService
+    {
+        return $this->collections;
+    }
+
+    public function payouts(): PayoutService
+    {
+        return $this->payouts;
+    }
+
+    public function wallets(): WalletService
+    {
+        return $this->wallets;
+    }
+
+    public function virtualBankAccounts(): VirtualBankAccountService
+    {
+        return $this->virtualBankAccounts;
+    }
+
+    public function transactions(): TransactionService
+    {
+        return $this->transactions;
+    }
+
+    public function banks(): BankService
+    {
+        return $this->banks;
+    }
+
+    public function currencies(): CurrencyService
+    {
+        return $this->currencies;
+    }
+
+    public function fees(): FeesService
+    {
+        return $this->fees;
+    }
+
+    public function files(): FileService
+    {
+        return $this->files;
+    }
+
+    public function webhooks(): WebhookService
+    {
+        return $this->webhooks;
+    }
 }
