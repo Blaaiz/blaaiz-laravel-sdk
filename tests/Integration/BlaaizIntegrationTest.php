@@ -137,12 +137,14 @@ it('should verify webhook signature', function () {
 
     $payload = '{"transaction_id":"test-123","status":"completed"}';
     $secret = 'test-webhook-secret';
-    $validSignature = hash_hmac('sha256', $payload, $secret);
+    $timestamp = '1234567890';
+    $signed = $timestamp . '.' . $payload;
+    $validSignature = hash_hmac('sha256', $signed, $secret);
 
-    $isValid = $blaaiz->webhooks->verifySignature($payload, $validSignature, $secret);
+    $isValid = $blaaiz->webhooks->verifySignature($payload, $validSignature, $timestamp, $secret);
     expect($isValid)->toBe(true);
 
-    $isInvalid = $blaaiz->webhooks->verifySignature($payload, 'invalid-signature', $secret);
+    $isInvalid = $blaaiz->webhooks->verifySignature($payload, 'invalid-signature', $timestamp, $secret);
     expect($isInvalid)->toBe(false);
 });
 
@@ -154,9 +156,11 @@ it('should construct webhook event', function () {
 
     $payload = '{"transaction_id":"test-123","status":"completed"}';
     $secret = 'test-webhook-secret';
-    $validSignature = hash_hmac('sha256', $payload, $secret);
+    $timestamp = '1234567890';
+    $signed = $timestamp . '.' . $payload;
+    $validSignature = hash_hmac('sha256', $signed, $secret);
 
-    $event = $blaaiz->webhooks->constructEvent($payload, $validSignature, $secret);
+    $event = $blaaiz->webhooks->constructEvent($payload, $validSignature, $timestamp, $secret);
     expect($event['transaction_id'])->toBe('test-123');
     expect($event['status'])->toBe('completed');
     expect($event['verified'])->toBe(true);
