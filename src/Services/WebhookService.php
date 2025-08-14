@@ -30,9 +30,9 @@ class WebhookService extends BaseService
         return $this->client->makeRequest('POST', '/api/external/webhook/replay', $replayData);
     }
 
-    public function verifySignature(mixed $payload, string $signature, string $secret): bool
+    public function verifySignature(string $rawBody, string $signature, string $timestamp, string $secret): bool
     {
-        if (empty($payload)) {
+        if (empty($rawBody)) {
             throw new BlaaizException('Payload is required for signature verification');
         }
 
@@ -43,25 +43,24 @@ class WebhookService extends BaseService
         if (empty($secret)) {
             throw new BlaaizException('Webhook secret is required for signature verification');
         }
-
-        $payloadString = is_string($payload) ? $payload : json_encode($payload);
-        if ($payloadString === false) {
-            throw new BlaaizException('Failed to encode payload to JSON');
+        if(empty($timestamp)) {
+            throw new BlaaizException('Timestamp is required for signature verification');
         }
-        $cleanSignature = str_replace('sha256=', '', $signature);
-        $expectedSignature = hash_hmac('sha256', $payloadString, $secret);
 
-        return hash_equals($expectedSignature, $cleanSignature);
+        $signed = $timestamp . '.' . $rawBody;
+        $expected = hash_hmac('sha256', $signed, $secret);
+
+        return hash_equals($expected, strtolower($signature));
     }
 
-    public function constructEvent(mixed $payload, string $signature, string $secret): array
+    public function constructEvent(string $payload, string $signature, string $timestamp, string $secret): array
     {
-        if (!$this->verifySignature($payload, $signature, $secret)) {
+        if (!$this->verifySignature($payload, $signature, $timestamp, $secret)) {
             throw new BlaaizException('Invalid webhook signature');
         }
 
         try {
-            $event = is_string($payload) ? json_decode($payload, true) : $payload;
+            $event = json_decode($payload, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new BlaaizException('Invalid webhook payload: unable to parse JSON');

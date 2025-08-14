@@ -87,49 +87,48 @@ describe('WebhookService', function () {
     });
 
     it('validates required parameters for verifySignature', function () {
-        expect(fn() => $this->service->verifySignature('', 'sig', 'secret'))
+        expect(fn() => $this->service->verifySignature('', 'sig', 'timestamp', 'secret'))
             ->toThrow(BlaaizException::class, 'Payload is required for signature verification');
 
-        expect(fn() => $this->service->verifySignature('payload', '', 'secret'))
+        expect(fn() => $this->service->verifySignature('payload', '', 'timestamp', 'secret'))
             ->toThrow(BlaaizException::class, 'Signature is required for signature verification');
 
-        expect(fn() => $this->service->verifySignature('payload', 'sig', ''))
+        expect(fn() => $this->service->verifySignature('payload', 'sig', '', 'secret'))
+            ->toThrow(BlaaizException::class, 'Timestamp is required for signature verification');
+
+        expect(fn() => $this->service->verifySignature('payload', 'sig', 'timestamp', ''))
             ->toThrow(BlaaizException::class, 'Webhook secret is required for signature verification');
     });
 
     it('returns true for valid signature', function () {
         $payload = '{"transaction_id":"txn_123","status":"completed"}';
         $secret = 'webhook_secret_key';
-        $validSignature = hash_hmac('sha256', $payload, $secret);
+        $timestamp = '1234567890';
+        $signed = $timestamp . '.' . $payload;
+        $validSignature = hash_hmac('sha256', $signed, $secret);
 
-        $result = $this->service->verifySignature($payload, $validSignature, $secret);
-        expect($result)->toBeTrue();
-    });
-
-    it('returns true for valid signature with sha256= prefix', function () {
-        $payload = '{"transaction_id":"txn_123","status":"completed"}';
-        $secret = 'webhook_secret_key';
-        $validSignature = 'sha256=' . hash_hmac('sha256', $payload, $secret);
-
-        $result = $this->service->verifySignature($payload, $validSignature, $secret);
+        $result = $this->service->verifySignature($payload, $validSignature, $timestamp, $secret);
         expect($result)->toBeTrue();
     });
 
     it('returns false for invalid signature', function () {
         $payload = '{"transaction_id":"txn_123","status":"completed"}';
         $secret = 'webhook_secret_key';
+        $timestamp = '1234567890';
         $invalidSignature = 'invalid_signature';
 
-        $result = $this->service->verifySignature($payload, $invalidSignature, $secret);
+        $result = $this->service->verifySignature($payload, $invalidSignature, $timestamp, $secret);
         expect($result)->toBeFalse();
     });
 
     it('works with object payload for verifySignature', function () {
-        $payload = ['transaction_id' => 'txn_123', 'status' => 'completed'];
+        $payload = '{"transaction_id":"txn_123","status":"completed"}';
         $secret = 'webhook_secret_key';
-        $validSignature = hash_hmac('sha256', json_encode($payload), $secret);
+        $timestamp = '1234567890';
+        $signed = $timestamp . '.' . $payload;
+        $validSignature = hash_hmac('sha256', $signed, $secret);
 
-        $result = $this->service->verifySignature($payload, $validSignature, $secret);
+        $result = $this->service->verifySignature($payload, $validSignature, $timestamp, $secret);
         expect($result)->toBeTrue();
     });
 
@@ -139,9 +138,11 @@ describe('WebhookService', function () {
 
         $payload = '{"transaction_id":"txn_123","status":"completed"}';
         $secret = 'webhook_secret_key';
-        $validSignature = hash_hmac('sha256', $payload, $secret);
+        $timestamp = '1234567890';
+        $signed = $timestamp . '.' . $payload;
+        $validSignature = hash_hmac('sha256', $signed, $secret);
 
-        $event = $this->service->constructEvent($payload, $validSignature, $secret);
+        $event = $this->service->constructEvent($payload, $validSignature, $timestamp, $secret);
 
         expect($event['transaction_id'])->toBe('txn_123');
         expect($event['status'])->toBe('completed');
@@ -155,18 +156,21 @@ describe('WebhookService', function () {
     it('throws error for invalid signature in constructEvent', function () {
         $payload = '{"transaction_id":"txn_123","status":"completed"}';
         $secret = 'webhook_secret_key';
+        $timestamp = '1234567890';
         $invalidSignature = 'invalid_signature';
 
-        expect(fn() => $this->service->constructEvent($payload, $invalidSignature, $secret))
+        expect(fn() => $this->service->constructEvent($payload, $invalidSignature, $timestamp, $secret))
             ->toThrow(BlaaizException::class, 'Invalid webhook signature');
     });
 
     it('throws error for invalid JSON in constructEvent', function () {
         $payload = 'invalid json';
         $secret = 'webhook_secret_key';
-        $validSignature = hash_hmac('sha256', $payload, $secret);
+        $timestamp = '1234567890';
+        $signed = $timestamp . '.' . $payload;
+        $validSignature = hash_hmac('sha256', $signed, $secret);
 
-        expect(fn() => $this->service->constructEvent($payload, $validSignature, $secret))
+        expect(fn() => $this->service->constructEvent($payload, $validSignature, $timestamp, $secret))
             ->toThrow(BlaaizException::class, 'Invalid webhook payload: unable to parse JSON');
     });
 
@@ -174,11 +178,13 @@ describe('WebhookService', function () {
         // Mock Laravel's now() helper
         Carbon::setTestNow(Carbon::create(2023, 1, 1, 12, 0, 0));
 
-        $payload = ['transaction_id' => 'txn_123', 'status' => 'completed'];
+        $payload = '{"transaction_id":"txn_123","status":"completed"}';
         $secret = 'webhook_secret_key';
-        $validSignature = hash_hmac('sha256', json_encode($payload), $secret);
+        $timestamp = '1234567890';
+        $signed = $timestamp . '.' . $payload;
+        $validSignature = hash_hmac('sha256', $signed, $secret);
 
-        $event = $this->service->constructEvent($payload, $validSignature, $secret);
+        $event = $this->service->constructEvent($payload, $validSignature, $timestamp, $secret);
 
         expect($event['transaction_id'])->toBe('txn_123');
         expect($event['status'])->toBe('completed');
