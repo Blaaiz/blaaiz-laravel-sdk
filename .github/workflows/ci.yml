@@ -139,7 +139,7 @@ jobs:
         zip -r build/blaaiz-laravel-sdk.zip . -x "*.git*" "tests/*" "build/*" "*.github*"
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: package
         path: build/
