@@ -9,10 +9,17 @@ class CustomerService extends BaseService
     public function create(array $customerData): array
     {
         $this->validateRequiredFields($customerData, [
-            'first_name', 'last_name', 'type', 'email', 'country', 'id_type', 'id_number'
+            'type', 'email', 'country', 'id_type', 'id_number'
         ]);
 
-        if ($customerData['type'] === 'business' && empty($customerData['business_name'])) {
+        if ($customerData['type'] === 'individual') {
+            if (empty($customerData['first_name'])) {
+                throw new BlaaizException('first_name is required when type is individual');
+            }
+            if (empty($customerData['last_name'])) {
+                throw new BlaaizException('last_name is required when type is individual');
+            }
+        } elseif ($customerData['type'] === 'business' && empty($customerData['business_name'])) {
             throw new BlaaizException('business_name is required when type is business');
         }
 

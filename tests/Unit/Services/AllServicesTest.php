@@ -24,20 +24,28 @@ describe('CollectionService', function () {
 
     it('validates required fields for initiate', function () {
         expect(fn() => $this->service->initiate([]))
-            ->toThrow(BlaaizException::class, 'method is required');
+            ->toThrow(BlaaizException::class, 'customer_id is required');
 
-        expect(fn() => $this->service->initiate(['method' => 'bank_transfer']))
+        expect(fn() => $this->service->initiate(['customer_id' => 'c1']))
+            ->toThrow(BlaaizException::class, 'wallet_id is required');
+
+        expect(fn() => $this->service->initiate(['customer_id' => 'c1', 'wallet_id' => 'w1']))
             ->toThrow(BlaaizException::class, 'amount is required');
 
-        expect(fn() => $this->service->initiate(['method' => 'bank_transfer', 'amount' => 100]))
-            ->toThrow(BlaaizException::class, 'wallet_id is required');
+        expect(fn() => $this->service->initiate(['customer_id' => 'c1', 'wallet_id' => 'w1', 'amount' => 100]))
+            ->toThrow(BlaaizException::class, 'currency is required');
+
+        expect(fn() => $this->service->initiate(['customer_id' => 'c1', 'wallet_id' => 'w1', 'amount' => 100, 'currency' => 'NGN']))
+            ->toThrow(BlaaizException::class, 'method is required');
     });
 
     it('calls makeRequest for initiate', function () {
         $collectionData = [
-            'method' => 'bank_transfer',
+            'customer_id' => 'c1',
+            'wallet_id' => 'w1',
             'amount' => 100,
-            'wallet_id' => 'w1'
+            'currency' => 'NGN',
+            'method' => 'open_banking'
         ];
 
         $this->mockClient
@@ -69,6 +77,24 @@ describe('CollectionService', function () {
 
         $result = $this->service->attachCustomer($attachData);
         expect($result)->toBe(['data' => ['success' => true]]);
+    });
+
+    it('validates required fields for acceptInteracMoneyRequest', function () {
+        expect(fn() => $this->service->acceptInteracMoneyRequest([]))
+            ->toThrow(BlaaizException::class, 'reference_number is required');
+    });
+
+    it('calls makeRequest for acceptInteracMoneyRequest', function () {
+        $interacData = ['reference_number' => 'ref123', 'security_answer' => 'answer'];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/collection/accept-interac-money-request', $interacData)
+            ->andReturn(['data' => ['message' => 'Interac money request accepted successfully']]);
+
+        $result = $this->service->acceptInteracMoneyRequest($interacData);
+        expect($result)->toBe(['data' => ['message' => 'Interac money request accepted successfully']]);
     });
 });
 
@@ -138,7 +164,7 @@ describe('VirtualBankAccountService', function () {
         expect($result)->toBe(['data' => ['account_number' => '123456789']]);
     });
 
-    it('calls makeRequest for list', function () {
+    it('calls makeRequest for list with no filters', function () {
         $this->mockClient
             ->shouldReceive('makeRequest')
             ->once()
@@ -146,6 +172,39 @@ describe('VirtualBankAccountService', function () {
             ->andReturn(['data' => []]);
 
         $result = $this->service->list();
+        expect($result)->toBe(['data' => []]);
+    });
+
+    it('calls makeRequest for list with wallet_id', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', '/api/external/virtual-bank-account?wallet_id=w1')
+            ->andReturn(['data' => []]);
+
+        $result = $this->service->list('w1');
+        expect($result)->toBe(['data' => []]);
+    });
+
+    it('calls makeRequest for list with customer_id', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', '/api/external/virtual-bank-account?customer_id=c1')
+            ->andReturn(['data' => []]);
+
+        $result = $this->service->list(null, 'c1');
+        expect($result)->toBe(['data' => []]);
+    });
+
+    it('calls makeRequest for list with wallet_id and customer_id', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', '/api/external/virtual-bank-account?wallet_id=w1&customer_id=c1')
+            ->andReturn(['data' => []]);
+
+        $result = $this->service->list('w1', 'c1');
         expect($result)->toBe(['data' => []]);
     });
 
@@ -163,6 +222,33 @@ describe('VirtualBankAccountService', function () {
 
         $result = $this->service->get('vba1');
         expect($result)->toBe(['data' => ['id' => 'vba1']]);
+    });
+
+    it('validates ID for close', function () {
+        expect(fn() => $this->service->close(''))
+            ->toThrow(BlaaizException::class, 'Virtual bank account ID is required');
+    });
+
+    it('calls makeRequest for close without reason', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/virtual-bank-account/vba1/close', [])
+            ->andReturn(['data' => ['status' => 'closed']]);
+
+        $result = $this->service->close('vba1');
+        expect($result)->toBe(['data' => ['status' => 'closed']]);
+    });
+
+    it('calls makeRequest for close with reason', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/virtual-bank-account/vba1/close', ['reason' => 'No longer needed'])
+            ->andReturn(['data' => ['status' => 'closed']]);
+
+        $result = $this->service->close('vba1', 'No longer needed');
+        expect($result)->toBe(['data' => ['status' => 'closed']]);
     });
 });
 
@@ -291,14 +377,31 @@ describe('FeesService', function () {
         expect(fn() => $this->service->getBreakdown([
             'from_currency_id' => 'USD',
             'to_currency_id' => 'NGN'
-        ]))->toThrow(BlaaizException::class, 'from_amount is required');
+        ]))->toThrow(BlaaizException::class, 'Either from_amount or to_amount is required');
     });
 
-    it('calls makeRequest for getBreakdown', function () {
+    it('calls makeRequest for getBreakdown with from_amount', function () {
         $feeData = [
             'from_currency_id' => 'USD',
             'to_currency_id' => 'NGN',
             'from_amount' => 100
+        ];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/fees/breakdown', $feeData)
+            ->andReturn(['data' => ['total_fees' => 5.50]]);
+
+        $result = $this->service->getBreakdown($feeData);
+        expect($result)->toBe(['data' => ['total_fees' => 5.50]]);
+    });
+
+    it('calls makeRequest for getBreakdown with to_amount', function () {
+        $feeData = [
+            'from_currency_id' => 'USD',
+            'to_currency_id' => 'NGN',
+            'to_amount' => 50000
         ];
 
         $this->mockClient

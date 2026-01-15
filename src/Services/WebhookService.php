@@ -30,6 +30,11 @@ class WebhookService extends BaseService
         return $this->client->makeRequest('POST', '/api/external/webhook/replay', $replayData);
     }
 
+    public function simulateInteracWebhook(array $simulateData): array
+    {
+        return $this->client->makeRequest('POST', '/api/external/mock/simulate-webhook/interac', $simulateData);
+    }
+
     public function verifySignature(string $rawBody, string $signature, string $timestamp, string $secret): bool
     {
         if (empty($rawBody)) {

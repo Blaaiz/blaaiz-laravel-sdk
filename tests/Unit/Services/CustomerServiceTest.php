@@ -17,28 +17,41 @@ describe('CustomerService', function () {
 
     it('validates required fields for create', function () {
         expect(fn() => $this->service->create([]))
-            ->toThrow(BlaaizException::class, 'first_name is required');
+            ->toThrow(BlaaizException::class, 'type is required');
 
-        expect(fn() => $this->service->create(['first_name' => 'John']))
-            ->toThrow(BlaaizException::class, 'last_name is required');
+        expect(fn() => $this->service->create(['type' => 'individual']))
+            ->toThrow(BlaaizException::class, 'email is required');
 
         expect(fn() => $this->service->create([
-            'first_name' => 'John',
-            'last_name' => 'Doe',
             'type' => 'individual',
             'email' => 'john@example.com',
             'country' => 'NG'
         ]))->toThrow(BlaaizException::class, 'id_type is required');
+
+        expect(fn() => $this->service->create([
+            'type' => 'individual',
+            'email' => 'john@example.com',
+            'country' => 'NG',
+            'id_type' => 'passport',
+            'id_number' => '12345'
+        ]))->toThrow(BlaaizException::class, 'first_name is required when type is individual');
+
+        expect(fn() => $this->service->create([
+            'type' => 'individual',
+            'email' => 'john@example.com',
+            'country' => 'NG',
+            'id_type' => 'passport',
+            'id_number' => '12345',
+            'first_name' => 'John'
+        ]))->toThrow(BlaaizException::class, 'last_name is required when type is individual');
     });
 
     it('requires business_name for business type in create', function () {
         $customerData = [
-            'first_name' => 'John',
-            'last_name' => 'Doe',
             'type' => 'business',
             'email' => 'john@example.com',
             'country' => 'NG',
-            'id_type' => 'passport',
+            'id_type' => 'certificate_of_incorporation',
             'id_number' => '12345'
         ];
 
@@ -68,15 +81,13 @@ describe('CustomerService', function () {
         expect($result)->toBe(['data' => ['id' => 'customer-123']]);
     });
 
-    it('accepts business customers with business_name for create', function () {
+    it('accepts business customers with business_name for create (without first_name/last_name)', function () {
         $customerData = [
-            'first_name' => 'John',
-            'last_name' => 'Doe',
             'type' => 'business',
             'business_name' => 'Acme Corp',
             'email' => 'john@example.com',
             'country' => 'NG',
-            'id_type' => 'passport',
+            'id_type' => 'certificate_of_incorporation',
             'id_number' => '12345'
         ];
 

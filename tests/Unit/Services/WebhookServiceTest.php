@@ -193,4 +193,18 @@ describe('WebhookService', function () {
         // Clean up
         Carbon::setTestNow();
     });
+
+    it('calls makeRequest with correct parameters for simulateInteracWebhook', function () {
+        $simulateData = ['interac_email' => 'test@example.com'];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/mock/simulate-webhook/interac', $simulateData)
+            ->andReturn(['message' => 'Webhook sent successfully']);
+
+        $result = $this->service->simulateInteracWebhook($simulateData);
+
+        expect($result)->toBe(['message' => 'Webhook sent successfully']);
+    });
 });

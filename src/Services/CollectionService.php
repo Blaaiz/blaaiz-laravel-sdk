@@ -2,11 +2,13 @@
 
 namespace Blaaiz\LaravelSdk\Services;
 
+use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
+
 class CollectionService extends BaseService
 {
     public function initiate(array $collectionData): array
     {
-        $this->validateRequiredFields($collectionData, ['method', 'amount', 'wallet_id']);
+        $this->validateRequiredFields($collectionData, ['customer_id', 'wallet_id', 'amount', 'currency', 'method']);
 
         return $this->client->makeRequest('POST', '/api/external/collection', $collectionData);
     }
@@ -26,5 +28,12 @@ class CollectionService extends BaseService
     public function getCryptoNetworks(): array
     {
         return $this->client->makeRequest('GET', '/api/external/collection/crypto/networks');
+    }
+
+    public function acceptInteracMoneyRequest(array $interacData): array
+    {
+        $this->validateRequiredFields($interacData, ['reference_number']);
+
+        return $this->client->makeRequest('POST', '/api/external/collection/accept-interac-money-request', $interacData);
     }
 }

@@ -49,8 +49,11 @@ echo $isConnected ? 'API Connected' : 'Connection Failed';
 - **EUR/GBP**: Open Banking
 
 ### Payouts
-- **Bank Transfer**: All supported currencies
+- **Bank Transfer**: NGN, GBP, EUR
 - **Interac**: CAD transactions
+- **ACH**: USD transactions
+- **Wire**: USD transactions
+- **Crypto**: USDT, USDC on multiple networks
 
 ## API Reference
 
@@ -163,11 +166,16 @@ $fileAssociation = Blaaiz::customers()->uploadFiles('customer-id', [
 
 ```php
 $collection = Blaaiz::collections()->initiate([
-    'method' => 'open_banking',
-    'amount' => 100.00,
     'customer_id' => 'customer-id',
     'wallet_id' => 'wallet-id',
-    'phone' => '+1234567890' // Optional
+    'amount' => 100.00,
+    'currency' => 'EUR', // EUR, GBP, NGN, USD
+    'method' => 'open_banking',
+    'phone_number' => '+1234567890', // Optional
+    'email' => 'customer@example.com', // Optional
+    'reference' => 'your-reference', // Optional
+    'narration' => 'Payment description', // Optional
+    'redirect_url' => 'https://your-site.com/callback' // Optional
 ]);
 
 echo 'Payment URL: ' . $collection['data']['url'];
@@ -178,13 +186,32 @@ echo 'Transaction ID: ' . $collection['data']['transaction_id'];
 
 ```php
 $collection = Blaaiz::collections()->initiate([
-    'method' => 'card',
-    'amount' => 5000,
     'customer_id' => 'customer-id',
-    'wallet_id' => 'wallet-id'
+    'wallet_id' => 'wallet-id',
+    'amount' => 5000,
+    'currency' => 'NGN',
+    'method' => 'card'
 ]);
 
 echo 'Payment URL: ' . $collection['data']['url'];
+```
+
+#### Accept Interac Money Request (CAD)
+
+```php
+// With security answer (standard transfer)
+$interac = Blaaiz::collections()->acceptInteracMoneyRequest([
+    'reference_number' => 'interac-reference',
+    'security_answer' => 'answer',
+    'email' => 'sender@example.com' // Optional
+]);
+
+// Auto deposit (no security answer required)
+$interacAutoDeposit = Blaaiz::collections()->acceptInteracMoneyRequest([
+    'reference_number' => 'interac-reference'
+]);
+
+echo 'Message: ' . $interac['data']['message'];
 ```
 
 #### Crypto Collection
@@ -214,22 +241,54 @@ $attachment = Blaaiz::collections()->attachCustomer([
 
 ### Payouts
 
-#### Bank Transfer Payout
+#### Bank Transfer Payout (NGN)
 
 ```php
 $payout = Blaaiz::payouts()->initiate([
     'wallet_id' => 'wallet-id',
     'customer_id' => 'customer-id',
     'method' => 'bank_transfer',
-    'from_amount' => 1000,
-    'from_currency_id' => '1', // NGN
-    'to_currency_id' => '1', // NGN
+    'from_amount' => 1000, // Use from_amount OR to_amount
+    'from_currency_id' => 'NGN',
+    'to_currency_id' => 'NGN',
+    'bank_id' => 'bank-id', // Required for NGN
     'account_number' => '0123456789',
-    'bank_id' => '1', // Required for NGN
-    'phone_number' => '+2348012345678'
+    'phone_number' => '+2348012345678' // Optional
 ]);
 
 echo 'Payout Status: ' . $payout['data']['transaction']['status'];
+```
+
+#### Bank Transfer Payout (GBP)
+
+```php
+$gbpPayout = Blaaiz::payouts()->initiate([
+    'wallet_id' => 'wallet-id',
+    'customer_id' => 'customer-id',
+    'method' => 'bank_transfer',
+    'from_amount' => 100,
+    'from_currency_id' => 'GBP',
+    'to_currency_id' => 'GBP',
+    'sort_code' => '123456',
+    'account_number' => '12345678',
+    'account_name' => 'John Doe'
+]);
+```
+
+#### Bank Transfer Payout (EUR)
+
+```php
+$eurPayout = Blaaiz::payouts()->initiate([
+    'wallet_id' => 'wallet-id',
+    'customer_id' => 'customer-id',
+    'method' => 'bank_transfer',
+    'from_amount' => 100,
+    'from_currency_id' => 'EUR',
+    'to_currency_id' => 'EUR',
+    'iban' => 'DE89370400440532013000',
+    'bic_code' => 'COBADEFFXXX',
+    'account_name' => 'John Doe'
+]);
 ```
 
 #### Interac Payout (CAD)
@@ -240,11 +299,83 @@ $interacPayout = Blaaiz::payouts()->initiate([
     'customer_id' => 'customer-id',
     'method' => 'interac',
     'from_amount' => 100,
-    'from_currency_id' => '2', // CAD
-    'to_currency_id' => '2', // CAD
+    'from_currency_id' => 'CAD',
+    'to_currency_id' => 'CAD',
     'email' => 'recipient@example.com',
     'interac_first_name' => 'John',
     'interac_last_name' => 'Doe'
+]);
+```
+
+#### ACH Payout (USD)
+
+```php
+$achPayout = Blaaiz::payouts()->initiate([
+    'wallet_id' => 'wallet-id',
+    'customer_id' => 'customer-id',
+    'method' => 'ach',
+    'from_amount' => 100,
+    'from_currency_id' => 'USD',
+    'to_currency_id' => 'USD',
+    'type' => 'individual', // individual or business
+    'account_number' => '123456789',
+    'account_name' => 'John Doe',
+    'account_type' => 'checking', // checking or savings
+    'bank_name' => 'Chase Bank',
+    'routing_number' => '021000021'
+]);
+```
+
+#### Wire Payout (USD)
+
+```php
+$wirePayout = Blaaiz::payouts()->initiate([
+    'wallet_id' => 'wallet-id',
+    'customer_id' => 'customer-id',
+    'method' => 'wire',
+    'from_amount' => 1000,
+    'from_currency_id' => 'USD',
+    'to_currency_id' => 'USD',
+    'type' => 'individual',
+    'account_number' => '123456789',
+    'account_name' => 'John Doe',
+    'account_type' => 'checking',
+    'bank_name' => 'Chase Bank',
+    'routing_number' => '021000021',
+    'swift_code' => 'CHASUS33'
+]);
+```
+
+#### Crypto Payout
+
+```php
+$cryptoPayout = Blaaiz::payouts()->initiate([
+    'wallet_id' => 'wallet-id',
+    'customer_id' => 'customer-id',
+    'method' => 'crypto',
+    'from_amount' => 100,
+    'from_currency_id' => 'USD',
+    'to_currency_id' => 'USDT',
+    'wallet_address' => '0x1234567890abcdef...',
+    'wallet_token' => 'USDT', // USDT or USDC
+    'wallet_network' => 'ETHEREUM_MAINNET' // BSC_MAINNET, ETHEREUM_MAINNET, TRON_MAINNET, MATIC_MAINNET
+]);
+```
+
+#### Using to_amount Instead of from_amount
+
+You can specify the exact amount the recipient should receive:
+
+```php
+$payout = Blaaiz::payouts()->initiate([
+    'wallet_id' => 'wallet-id',
+    'customer_id' => 'customer-id',
+    'method' => 'bank_transfer',
+    'to_amount' => 50000, // Recipient gets exactly this amount
+    'from_currency_id' => 'USD',
+    'to_currency_id' => 'NGN',
+    'bank_id' => 'bank-id',
+    'account_number' => '0123456789'
 ]);
 ```
 
@@ -264,9 +395,37 @@ echo 'Bank Name: ' . $vba['data']['bank_name'];
 
 #### List Virtual Bank Accounts
 
+You can optionally filter by `wallet_id`, `customer_id`, or both.
+
 ```php
-$vbas = Blaaiz::virtualBankAccounts()->list('wallet-id');
-echo 'Virtual Accounts: ' . json_encode($vbas['data']);
+// All virtual bank accounts
+$vbas = Blaaiz::virtualBankAccounts()->list();
+
+// Filter by wallet
+$vbasByWallet = Blaaiz::virtualBankAccounts()->list('wallet-id');
+
+// Filter by customer
+$vbasByCustomer = Blaaiz::virtualBankAccounts()->list(null, 'customer-id');
+
+// Filter by both wallet and customer
+$vbasByBoth = Blaaiz::virtualBankAccounts()->list('wallet-id', 'customer-id');
+
+echo 'All: ' . json_encode($vbas['data']);
+echo 'By Wallet: ' . json_encode($vbasByWallet['data']);
+echo 'By Customer: ' . json_encode($vbasByCustomer['data']);
+echo 'By Both: ' . json_encode($vbasByBoth['data']);
+```
+
+#### Close Virtual Bank Account
+
+```php
+// Close without reason
+$closed = Blaaiz::virtualBankAccounts()->close('vba-id');
+
+// Close with reason
+$closed = Blaaiz::virtualBankAccounts()->close('vba-id', 'No longer needed');
+
+echo 'Status: ' . $closed['data']['status'];
 ```
 
 ### Wallets
@@ -338,15 +497,25 @@ echo 'Supported Currencies: ' . json_encode($currencies['data']);
 #### Get Fee Breakdown
 
 ```php
+// Using from_amount (calculate what recipient gets)
 $feeBreakdown = Blaaiz::fees()->getBreakdown([
-    'from_currency_id' => '1', // NGN
-    'to_currency_id' => '2', // CAD
+    'from_currency_id' => 'NGN',
+    'to_currency_id' => 'CAD',
     'from_amount' => 100000
 ]);
 
 echo 'You send: ' . $feeBreakdown['data']['you_send'];
 echo 'Recipient gets: ' . $feeBreakdown['data']['recipient_gets'];
 echo 'Total fees: ' . $feeBreakdown['data']['total_fees'];
+
+// Using to_amount (calculate what you need to send)
+$feeBreakdown = Blaaiz::fees()->getBreakdown([
+    'from_currency_id' => 'USD',
+    'to_currency_id' => 'NGN',
+    'to_amount' => 50000 // Recipient should get exactly this
+]);
+
+echo 'You send: ' . $feeBreakdown['data']['you_send'];
 ```
 
 ### Webhooks
@@ -373,6 +542,17 @@ echo 'Webhook URLs: ' . json_encode($webhookConfig['data']);
 $replay = Blaaiz::webhooks()->replay([
     'transaction_id' => 'transaction-id'
 ]);
+```
+
+#### Simulate Interac Webhook (Non-Production Only)
+
+```php
+// For testing Interac webhooks in development/sandbox environment
+$simulate = Blaaiz::webhooks()->simulateInteracWebhook([
+    'interac_email' => 'sender@example.com'
+]);
+
+echo 'Message: ' . $simulate['message'];
 ```
 
 ## Advanced Usage
