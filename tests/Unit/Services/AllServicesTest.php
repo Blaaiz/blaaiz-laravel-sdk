@@ -250,6 +250,39 @@ describe('VirtualBankAccountService', function () {
         $result = $this->service->close('vba1', 'No longer needed');
         expect($result)->toBe(['data' => ['status' => 'closed']]);
     });
+
+    it('validates required parameters for getIdentificationType', function () {
+        expect(fn() => $this->service->getIdentificationType())
+            ->toThrow(BlaaizException::class, 'Either customer_id or both country and type are required');
+
+        expect(fn() => $this->service->getIdentificationType(null, 'NG'))
+            ->toThrow(BlaaizException::class, 'Either customer_id or both country and type are required');
+
+        expect(fn() => $this->service->getIdentificationType(null, null, 'individual'))
+            ->toThrow(BlaaizException::class, 'Either customer_id or both country and type are required');
+    });
+
+    it('calls makeRequest for getIdentificationType with customer_id', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', '/api/external/virtual-bank-account/identification-type?customer_id=c1')
+            ->andReturn(['data' => ['label' => 'Bank Verification Number', 'type' => 'bvn']]);
+
+        $result = $this->service->getIdentificationType('c1');
+        expect($result)->toBe(['data' => ['label' => 'Bank Verification Number', 'type' => 'bvn']]);
+    });
+
+    it('calls makeRequest for getIdentificationType with country and type', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', '/api/external/virtual-bank-account/identification-type?country=NG&type=individual')
+            ->andReturn(['data' => ['label' => 'Bank Verification Number', 'type' => 'bvn']]);
+
+        $result = $this->service->getIdentificationType(null, 'NG', 'individual');
+        expect($result)->toBe(['data' => ['label' => 'Bank Verification Number', 'type' => 'bvn']]);
+    });
 });
 
 describe('TransactionService', function () {

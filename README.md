@@ -442,6 +442,21 @@ $closed = Blaaiz::virtualBankAccounts()->close('vba-id', 'No longer needed');
 echo 'Status: ' . $closed['data']['status'];
 ```
 
+#### Get Identification Type
+
+Retrieve the expected identification type label based on country and customer type. This is useful for determining what identification documents are required for a customer.
+
+```php
+// Using customer_id (recommended if customer already exists)
+$idType = Blaaiz::virtualBankAccounts()->getIdentificationType('customer-id');
+echo 'Required ID: ' . $idType['data']['label']; // e.g., "Bank Verification Number"
+echo 'Type: ' . $idType['data']['type']; // e.g., "bvn"
+
+// Using country and type (for new customers)
+$idType = Blaaiz::virtualBankAccounts()->getIdentificationType(null, 'NG', 'individual');
+echo 'Required ID: ' . $idType['data']['label'];
+```
+
 ### Wallets
 
 #### List All Wallets

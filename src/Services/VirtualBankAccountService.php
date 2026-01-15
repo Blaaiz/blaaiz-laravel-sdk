@@ -54,4 +54,25 @@ class VirtualBankAccountService extends BaseService
 
         return $this->client->makeRequest('POST', "/api/external/virtual-bank-account/{$vbaId}/close", $data);
     }
+
+    public function getIdentificationType(?string $customerId = null, ?string $country = null, ?string $type = null): array
+    {
+        if (empty($customerId) && (empty($country) || empty($type))) {
+            throw new BlaaizException('Either customer_id or both country and type are required');
+        }
+
+        $endpoint = '/api/external/virtual-bank-account/identification-type';
+        $params = [];
+
+        if ($customerId) {
+            $params['customer_id'] = $customerId;
+        } else {
+            $params['country'] = $country;
+            $params['type'] = $type;
+        }
+
+        $endpoint .= '?' . http_build_query($params);
+
+        return $this->client->makeRequest('GET', $endpoint);
+    }
 }
