@@ -474,5 +474,49 @@ describe('CustomerService', function () {
             'file_category' => 'identity'
         ]))->toThrow(BlaaizException::class, 'File upload failed: API Error');
     });
+
+    it('throws exception for empty customer ID in listBeneficiaries', function () {
+        expect(fn() => $this->service->listBeneficiaries(''))
+            ->toThrow(BlaaizException::class, 'Customer ID is required');
+    });
+
+    it('calls makeRequest with correct parameters for listBeneficiaries', function () {
+        $customerId = 'customer-123';
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', "/api/external/customer/{$customerId}/beneficiary")
+            ->andReturn(['data' => [['id' => 'beneficiary-1'], ['id' => 'beneficiary-2']]]);
+
+        $result = $this->service->listBeneficiaries($customerId);
+
+        expect($result)->toBe(['data' => [['id' => 'beneficiary-1'], ['id' => 'beneficiary-2']]]);
+    });
+
+    it('throws exception for empty customer ID in getBeneficiary', function () {
+        expect(fn() => $this->service->getBeneficiary('', 'beneficiary-123'))
+            ->toThrow(BlaaizException::class, 'Customer ID is required');
+    });
+
+    it('throws exception for empty beneficiary ID in getBeneficiary', function () {
+        expect(fn() => $this->service->getBeneficiary('customer-123', ''))
+            ->toThrow(BlaaizException::class, 'Beneficiary ID is required');
+    });
+
+    it('calls makeRequest with correct parameters for getBeneficiary', function () {
+        $customerId = 'customer-123';
+        $beneficiaryId = 'beneficiary-456';
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', "/api/external/customer/{$customerId}/beneficiary/{$beneficiaryId}")
+            ->andReturn(['data' => ['id' => $beneficiaryId, 'name' => 'John Doe']]);
+
+        $result = $this->service->getBeneficiary($customerId, $beneficiaryId);
+
+        expect($result)->toBe(['data' => ['id' => $beneficiaryId, 'name' => 'John Doe']]);
+    });
 });
 

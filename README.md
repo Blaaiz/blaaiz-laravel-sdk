@@ -101,6 +101,20 @@ $updatedCustomer = Blaaiz::customers()->update('customer-id', [
 ]);
 ```
 
+#### List Customer Beneficiaries
+
+```php
+$beneficiaries = Blaaiz::customers()->listBeneficiaries('customer-id');
+echo 'Beneficiaries: ' . json_encode($beneficiaries['data']);
+```
+
+#### Get Specific Beneficiary
+
+```php
+$beneficiary = Blaaiz::customers()->getBeneficiary('customer-id', 'beneficiary-id');
+echo 'Beneficiary: ' . json_encode($beneficiary['data']);
+```
+
 ### File Management & KYC
 
 #### Upload Customer Documents

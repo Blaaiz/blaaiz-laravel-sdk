@@ -146,6 +146,28 @@ class CustomerService extends BaseService
         }
     }
 
+    public function listBeneficiaries(string $customerId): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        return $this->client->makeRequest('GET', "/api/external/customer/{$customerId}/beneficiary");
+    }
+
+    public function getBeneficiary(string $customerId, string $beneficiaryId): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        if (empty($beneficiaryId)) {
+            throw new BlaaizException('Beneficiary ID is required');
+        }
+
+        return $this->client->makeRequest('GET', "/api/external/customer/{$customerId}/beneficiary/{$beneficiaryId}");
+    }
+
     private function processFileInput(mixed $file, ?string &$contentType, ?string &$filename): array
     {
         if (is_string($file)) {
