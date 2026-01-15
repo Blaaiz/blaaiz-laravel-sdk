@@ -78,33 +78,35 @@ jobs:
         name: codecov-umbrella
         fail_ci_if_error: false
 
-  integration-test:
-    runs-on: ubuntu-22.04
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick
-
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-interaction
-
-    - name: Run integration tests
-      env:
-        BLAAIZ_API_KEY: ${{ secrets.BLAAIZ_API_KEY }}
-        BLAAIZ_API_URL: ${{ secrets.BLAAIZ_API_URL }}
-      run: |
-        if [[ ! -z "${{ secrets.BLAAIZ_API_KEY }}" ]]; then
-          vendor/bin/pest --filter="Integration"
-        else
-          echo "⚠️ Skipping integration tests - API keys not configured"
-        fi
+  # Integration tests are disabled in CI because Blaaiz API doesn't whitelist GitHub Actions IPs.
+  # Run integration tests locally with: BLAAIZ_API_KEY=your_key vendor/bin/pest --filter="Integration"
+  # integration-test:
+  #   runs-on: ubuntu-22.04
+  #   needs: test
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #
+  #   - name: Setup PHP
+  #     uses: shivammathur/setup-php@v2
+  #     with:
+  #       php-version: '8.2'
+  #       extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick
+  #
+  #   - name: Install dependencies
+  #     run: composer install --prefer-dist --no-interaction
+  #
+  #   - name: Run integration tests
+  #     env:
+  #       BLAAIZ_API_KEY: ${{ secrets.BLAAIZ_API_KEY }}
+  #       BLAAIZ_API_URL: ${{ secrets.BLAAIZ_API_URL }}
+  #     run: |
+  #       if [[ ! -z "${{ secrets.BLAAIZ_API_KEY }}" ]]; then
+  #         vendor/bin/pest --filter="Integration"
+  #       else
+  #         echo "⚠️ Skipping integration tests - API keys not configured"
+  #       fi
 
   build:
     runs-on: ubuntu-22.04
