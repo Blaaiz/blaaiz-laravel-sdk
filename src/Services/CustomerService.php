@@ -187,7 +187,11 @@ class CustomerService extends BaseService
             return null;
         }
 
-        $bytes = array_values(unpack('C*', substr($content, 0, 12)));
+        $unpacked = unpack('C*', substr($content, 0, 12));
+        if ($unpacked === false) {
+            return null;
+        }
+        $bytes = array_values($unpacked);
 
         // JPEG: FF D8 FF
         if ($bytes[0] === 0xFF && $bytes[1] === 0xD8 && $bytes[2] === 0xFF) {
