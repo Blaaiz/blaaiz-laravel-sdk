@@ -251,7 +251,17 @@ class CustomerService extends BaseService
         if (is_string($file)) {
             if (str_starts_with($file, 'data:')) {
                 $parts = explode(',', $file);
-                $content = base64_decode($parts[1]);
+                $base64Part = $parts[1] ?? '';
+                if ($base64Part === '') {
+                    throw new BlaaizException('Invalid data URL: no base64 data found after the comma');
+                }
+                $content = base64_decode($base64Part, true);
+                if ($content === false) {
+                    throw new BlaaizException(
+                        'The base64 portion of the data URL does not appear to be valid base64. ' .
+                        'Ensure the string after the comma contains only valid base64 characters.'
+                    );
+                }
 
                 if (!$contentType && preg_match('/data:([^;]+)/', $file, $matches)) {
                     $contentType = $matches[1];
@@ -282,7 +292,13 @@ class CustomerService extends BaseService
                 ];
             }
 
-            $content = base64_decode($file);
+            $content = base64_decode($file, true);
+            if ($content === false) {
+                throw new BlaaizException(
+                    'The file string does not appear to be valid base64. ' .
+                    'If you meant to pass a file path or URL, use the appropriate format instead.'
+                );
+            }
         } else {
             $content = $file;
         }

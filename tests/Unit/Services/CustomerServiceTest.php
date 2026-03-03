@@ -366,6 +366,40 @@ describe('CustomerService', function () {
         expect($result['file_id'])->toBe('file-123');
     });
 
+    it('throws exception for invalid plain base64 string in uploadFileComplete', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->andReturn([
+                'data' => [
+                    'url' => 'https://s3.amazonaws.com/bucket/file',
+                    'file_id' => 'file-123'
+                ]
+            ]);
+
+        expect(fn() => $this->service->uploadFileComplete('customer-123', [
+            'file' => '/home/user/photo.jpg',
+            'file_category' => 'identity',
+        ]))->toThrow(BlaaizException::class, 'does not appear to be valid base64');
+    });
+
+    it('throws exception for invalid base64 in data URL for uploadFileComplete', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->andReturn([
+                'data' => [
+                    'url' => 'https://s3.amazonaws.com/bucket/file',
+                    'file_id' => 'file-123'
+                ]
+            ]);
+
+        expect(fn() => $this->service->uploadFileComplete('customer-123', [
+            'file' => 'data:image/jpeg;base64,not valid base64!!',
+            'file_category' => 'identity',
+        ]))->toThrow(BlaaizException::class, 'does not appear to be valid base64');
+    });
+
     it('handles URL download for uploadFileComplete', function () {
         $customerId = 'customer-123';
         $fileUrl = 'https://example.com/image.jpg';
@@ -478,8 +512,9 @@ describe('CustomerService', function () {
                 ]
             ]);
 
+        // Valid base64 that decodes to bytes with no recognizable magic bytes
         expect(fn() => $this->service->uploadFileComplete('customer-123', [
-            'file' => 'plain text with no recognizable magic bytes',
+            'file' => 'cmFuZG9tX2NvbnRlbnRfeHl6',
             'file_category' => 'identity'
         ]))->toThrow(BlaaizException::class, 'Could not determine file content type');
     });
@@ -487,7 +522,7 @@ describe('CustomerService', function () {
     it('auto-detects content type from filename extension in uploadFileComplete', function () {
         $customerId = 'customer-123';
         $fileOptions = [
-            'file' => 'some random content',
+            'file' => 'cmFuZG9tX2NvbnRlbnRfeHl6',
             'file_category' => 'identity',
             'filename' => 'document.pdf',
         ];
