@@ -264,7 +264,8 @@ describe('CustomerService', function () {
         $customerId = 'customer-123';
         $fileOptions = [
             'file' => 'test content',
-            'file_category' => 'identity'
+            'file_category' => 'identity',
+            'content_type' => 'application/pdf',
         ];
 
         $this->mockClient
@@ -294,10 +295,11 @@ describe('CustomerService', function () {
         expect($result['file_id'])->toBe('file-123');
     });
 
-    it('handles base64 string input for uploadFileComplete', function () {
+    it('handles base64 string input with auto-detected content type for uploadFileComplete', function () {
         $customerId = 'customer-123';
+        // This is a valid 1x1 PNG - magic bytes will be auto-detected
         $base64String = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-        
+
         $fileOptions = [
             'file' => $base64String,
             'file_category' => 'identity'
@@ -316,7 +318,7 @@ describe('CustomerService', function () {
         $this->mockClient
             ->shouldReceive('uploadFile')
             ->once()
-            ->with('https://s3.amazonaws.com/bucket/file', Mockery::type('string'), null, null)
+            ->with('https://s3.amazonaws.com/bucket/file', Mockery::type('string'), 'image/png', null)
             ->andReturn(['status' => 200]);
 
         $this->mockClient
@@ -362,6 +364,40 @@ describe('CustomerService', function () {
         $result = $this->service->uploadFileComplete($customerId, $fileOptions);
 
         expect($result['file_id'])->toBe('file-123');
+    });
+
+    it('throws exception for invalid plain base64 string in uploadFileComplete', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->andReturn([
+                'data' => [
+                    'url' => 'https://s3.amazonaws.com/bucket/file',
+                    'file_id' => 'file-123'
+                ]
+            ]);
+
+        expect(fn() => $this->service->uploadFileComplete('customer-123', [
+            'file' => '/home/user/photo.jpg',
+            'file_category' => 'identity',
+        ]))->toThrow(BlaaizException::class, 'does not appear to be valid base64');
+    });
+
+    it('throws exception for invalid base64 in data URL for uploadFileComplete', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->andReturn([
+                'data' => [
+                    'url' => 'https://s3.amazonaws.com/bucket/file',
+                    'file_id' => 'file-123'
+                ]
+            ]);
+
+        expect(fn() => $this->service->uploadFileComplete('customer-123', [
+            'file' => 'data:image/jpeg;base64,not valid base64!!',
+            'file_category' => 'identity',
+        ]))->toThrow(BlaaizException::class, 'does not appear to be valid base64');
     });
 
     it('handles URL download for uploadFileComplete', function () {
@@ -444,7 +480,8 @@ describe('CustomerService', function () {
 
             $result = $service->uploadFileComplete('customer-123', [
                 'file' => 'content',
-                'file_category' => $category
+                'file_category' => $category,
+                'content_type' => 'application/pdf',
             ]);
 
             expect($result['file_id'])->toBe('file-123');
@@ -459,8 +496,61 @@ describe('CustomerService', function () {
 
         expect(fn() => $this->service->uploadFileComplete('customer-123', [
             'file' => 'content',
-            'file_category' => 'identity'
+            'file_category' => 'identity',
+            'content_type' => 'application/pdf',
         ]))->toThrow(BlaaizException::class, 'Invalid presigned URL response structure');
+    });
+
+    it('throws exception when content type cannot be determined in uploadFileComplete', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->andReturn([
+                'data' => [
+                    'url' => 'https://s3.amazonaws.com/bucket/file',
+                    'file_id' => 'file-123'
+                ]
+            ]);
+
+        // Valid base64 that decodes to bytes with no recognizable magic bytes
+        expect(fn() => $this->service->uploadFileComplete('customer-123', [
+            'file' => 'cmFuZG9tX2NvbnRlbnRfeHl6',
+            'file_category' => 'identity'
+        ]))->toThrow(BlaaizException::class, 'Could not determine file content type');
+    });
+
+    it('auto-detects content type from filename extension in uploadFileComplete', function () {
+        $customerId = 'customer-123';
+        $fileOptions = [
+            'file' => 'cmFuZG9tX2NvbnRlbnRfeHl6',
+            'file_category' => 'identity',
+            'filename' => 'document.pdf',
+        ];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->andReturn([
+                'data' => [
+                    'url' => 'https://s3.amazonaws.com/bucket/file',
+                    'file_id' => 'file-123'
+                ]
+            ]);
+
+        $this->mockClient
+            ->shouldReceive('uploadFile')
+            ->once()
+            ->with('https://s3.amazonaws.com/bucket/file', Mockery::type('string'), 'application/pdf', 'document.pdf')
+            ->andReturn(['status' => 200]);
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->andReturn(['data' => ['success' => true]]);
+
+        $result = $this->service->uploadFileComplete($customerId, $fileOptions);
+
+        expect($result['file_id'])->toBe('file-123');
     });
 
     it('propagates BlaaizException from file operations in uploadFileComplete', function () {
@@ -471,7 +561,8 @@ describe('CustomerService', function () {
 
         expect(fn() => $this->service->uploadFileComplete('customer-123', [
             'file' => 'content',
-            'file_category' => 'identity'
+            'file_category' => 'identity',
+            'content_type' => 'application/pdf',
         ]))->toThrow(BlaaizException::class, 'File upload failed: API Error');
     });
 
