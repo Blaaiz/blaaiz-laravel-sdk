@@ -10,12 +10,26 @@ composer require blaaiz/blaaiz-laravel-sdk
 
 ## Quick Start
 
-```php
-// Add to your .env file
-BLAAIZ_API_KEY=your-api-key-here
-BLAAIZ_BASE_URL=https://api-dev.blaaiz.com  // For development
-// BLAAIZ_BASE_URL=https://api.blaaiz.com  // For production
+### Authentication
 
+The SDK supports two authentication methods. **OAuth 2.0 is recommended** for new integrations.
+
+**Option 1: OAuth 2.0 (Recommended)**
+```env
+BLAAIZ_CLIENT_ID=your-client-id
+BLAAIZ_CLIENT_SECRET=your-client-secret
+BLAAIZ_API_URL=https://api-dev.blaaiz.com
+```
+
+**Option 2: Legacy API Key**
+```env
+BLAAIZ_API_KEY=your-api-key-here
+BLAAIZ_API_URL=https://api-dev.blaaiz.com
+```
+
+When both OAuth credentials and an API key are configured, OAuth takes priority.
+
+```php
 // Publish configuration (optional)
 php artisan vendor:publish --tag=blaaiz-config
 
@@ -38,6 +52,9 @@ echo $isConnected ? 'API Connected' : 'Connection Failed';
 - **Files**: Document upload with pre-signed URLs
 - **Fees**: Real-time fee calculations and breakdowns
 - **Banks & Currencies**: Access to supported banks and currencies
+- **Rates**: View exchange rates with optional currency pair filtering
+- **Swap**: Swap money between business wallets
+- **OAuth 2.0 Authentication**: Client credentials flow with automatic token management
 - **Laravel Integration**: Native service provider, facade, and configuration
 
 ## Supported Currencies & Methods
@@ -547,6 +564,39 @@ $feeBreakdown = Blaaiz::fees()->getBreakdown([
 echo 'You send: ' . $feeBreakdown['data']['you_send'];
 ```
 
+### Rates
+
+#### List All Rates
+
+```php
+$rates = Blaaiz::rates()->list();
+echo 'Rates: ' . json_encode($rates['data']);
+```
+
+#### Search Rates by Currency Pair
+
+```php
+// Filter rates using partial matching (e.g., "USD" matches "USD/NGN")
+$usdRates = Blaaiz::rates()->list('USD');
+echo 'USD Rates: ' . json_encode($usdRates['data']);
+```
+
+### Swap
+
+#### Swap Money Between Business Wallets
+
+```php
+$swap = Blaaiz::swaps()->swap([
+    'from_business_wallet_id' => 'source-wallet-id',
+    'to_business_wallet_id' => 'destination-wallet-id',
+    'amount' => 100,
+    'amount_type' => 'from', // 'from' (debit amount) or 'to' (credit amount)
+]);
+
+echo 'Swap Status: ' . $swap['data']['business_swap_transaction']['status'];
+echo 'Rate: ' . $swap['data']['business_swap_transaction']['from_exchange_rate'];
+```
+
 ### Webhooks
 
 #### Register Webhooks
@@ -864,12 +914,19 @@ protected $except = [
 The SDK configuration can be customized via the `.env` file:
 
 ```env
-# Required
+# OAuth 2.0 Authentication (Recommended)
+BLAAIZ_CLIENT_ID=your-client-id
+BLAAIZ_CLIENT_SECRET=your-client-secret
+
+# Legacy API Key Authentication (fallback)
 BLAAIZ_API_KEY=your-api-key-here
 
+# Optional - OAuth scope (defaults to all scopes; override to request a subset)
+# BLAAIZ_OAUTH_SCOPE=wallet:read payout:create transaction:read
+
 # Optional - Environment URLs
-BLAAIZ_BASE_URL=https://api-dev.blaaiz.com  # Development (default)
-# BLAAIZ_BASE_URL=https://api.blaaiz.com    # Production
+BLAAIZ_API_URL=https://api-dev.blaaiz.com  # Development (default)
+# BLAAIZ_API_URL=https://api-prod.blaaiz.com  # Production
 
 # Optional - Request timeout
 BLAAIZ_TIMEOUT=30
@@ -886,10 +943,12 @@ After publishing the config file with `php artisan vendor:publish --tag=blaaiz-c
 <?php
 
 return [
-    'api_key' => env('BLAAIZ_API_KEY'),
-    'base_url' => env('BLAAIZ_BASE_URL', 'https://api-dev.blaaiz.com'),
+    'api_key' => env('BLAAIZ_API_KEY', ''),
+    'client_id' => env('BLAAIZ_CLIENT_ID', ''),
+    'client_secret' => env('BLAAIZ_CLIENT_SECRET', ''),
+    'oauth_scope' => env('BLAAIZ_OAUTH_SCOPE', ''),
+    'base_url' => env('BLAAIZ_API_URL', 'https://api-dev.blaaiz.com'),
     'timeout' => env('BLAAIZ_TIMEOUT', 30),
-    'webhook_secret' => env('BLAAIZ_WEBHOOK_SECRET'),
 ];
 ```
 
@@ -909,7 +968,7 @@ return [
 ## Requirements
 
 - PHP 8.1 or higher
-- Laravel 9.0, 10.0, or 11.0
+- Laravel 11.0 or 12.0
 - GuzzleHTTP 7.0 or higher
 
 ## Support

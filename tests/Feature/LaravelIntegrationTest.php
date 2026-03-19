@@ -130,12 +130,15 @@ describe('Laravel Integration', function () {
             expect($blaaiz->fees)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\FeesService::class);
             expect($blaaiz->files)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\FileService::class);
             expect($blaaiz->webhooks)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\WebhookService::class);
+            expect($blaaiz->rates)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\RateService::class);
+            expect($blaaiz->swaps)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\SwapService::class);
         });
 
         it('can be bound with custom configuration', function () {
             // Bind custom instance
             app()->bind(Blaaiz::class, function () {
-                return new Blaaiz('custom-api-key', [
+                return new Blaaiz([
+                    'api_key' => 'custom-api-key',
                     'base_url' => 'https://api.custom-test.com',
                     'timeout' => 45
                 ]);

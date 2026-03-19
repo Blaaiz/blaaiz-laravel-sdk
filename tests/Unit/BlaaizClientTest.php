@@ -21,7 +21,7 @@ describe('BlaaizClient.makeRequest', function () {
         $handlerStack = HandlerStack::create($mockHandler);
         $httpClient = new Client(['handler' => $handlerStack]);
 
-        $client = new BlaaizClient('test-key');
+        $client = new BlaaizClient(['api_key' => 'test-key']);
         
         $reflection = new ReflectionClass($client);
         $property = $reflection->getProperty('httpClient');
@@ -46,7 +46,7 @@ describe('BlaaizClient.makeRequest', function () {
         $handlerStack = HandlerStack::create($mockHandler);
         $httpClient = new Client(['handler' => $handlerStack]);
 
-        $client = new BlaaizClient('test-key');
+        $client = new BlaaizClient(['api_key' => 'test-key']);
         
         $reflection = new ReflectionClass($client);
         $property = $reflection->getProperty('httpClient');
@@ -65,7 +65,7 @@ describe('BlaaizClient.makeRequest', function () {
         $handlerStack = HandlerStack::create($mockHandler);
         $httpClient = new Client(['handler' => $handlerStack]);
 
-        $client = new BlaaizClient('test-key');
+        $client = new BlaaizClient(['api_key' => 'test-key']);
         
         $reflection = new ReflectionClass($client);
         $property = $reflection->getProperty('httpClient');
@@ -88,7 +88,7 @@ describe('BlaaizClient.makeRequest', function () {
         $handlerStack = HandlerStack::create($mockHandler);
         $httpClient = new Client(['handler' => $handlerStack]);
 
-        $client = new BlaaizClient('test-key');
+        $client = new BlaaizClient(['api_key' => 'test-key']);
         
         $reflection = new ReflectionClass($client);
         $property = $reflection->getProperty('httpClient');
@@ -107,7 +107,7 @@ describe('BlaaizClient.makeRequest', function () {
         $handlerStack = HandlerStack::create($mockHandler);
         $httpClient = new Client(['handler' => $handlerStack]);
 
-        $client = new BlaaizClient('test-key');
+        $client = new BlaaizClient(['api_key' => 'test-key']);
         
         $reflection = new ReflectionClass($client);
         $property = $reflection->getProperty('httpClient');
@@ -131,7 +131,7 @@ describe('BlaaizClient.makeRequest', function () {
         $handlerStack = HandlerStack::create($mockHandler);
         $httpClient = new Client(['handler' => $handlerStack]);
 
-        $client = new BlaaizClient('test-key');
+        $client = new BlaaizClient(['api_key' => 'test-key']);
         
         $reflection = new ReflectionClass($client);
         $property = $reflection->getProperty('httpClient');
@@ -146,7 +146,7 @@ describe('BlaaizClient.makeRequest', function () {
         expect($requestBody)->toBe($testData);
     });
 
-    it('does not send data for GET requests', function () {
+    it('sends data as query params for GET requests', function () {
         $mockHandler = new MockHandler([
             new Response(200, ['Content-Type' => 'application/json'], json_encode(['ok' => true]))
         ]);
@@ -154,28 +154,29 @@ describe('BlaaizClient.makeRequest', function () {
         $handlerStack = HandlerStack::create($mockHandler);
         $httpClient = new Client(['handler' => $handlerStack]);
 
-        $client = new BlaaizClient('test-key');
-        
+        $client = new BlaaizClient(['api_key' => 'test-key']);
+
         $reflection = new ReflectionClass($client);
         $property = $reflection->getProperty('httpClient');
         $property->setAccessible(true);
         $property->setValue($client, $httpClient);
 
-        $client->makeRequest('GET', '/test', ['should' => 'be_ignored']);
+        $client->makeRequest('GET', '/test', ['search_term' => 'USD']);
 
         $lastRequest = $mockHandler->getLastRequest();
         expect($lastRequest->getBody()->getContents())->toBe('');
+        expect($lastRequest->getUri()->getQuery())->toContain('search_term=USD');
     });
 });
 
 describe('BlaaizClient constructor', function () {
-    it('throws exception for empty API key', function () {
-        expect(fn() => new BlaaizClient(''))
-            ->toThrow(BlaaizException::class, 'API key is required');
+    it('throws exception when no auth credentials provided', function () {
+        expect(fn() => new BlaaizClient([]))
+            ->toThrow(BlaaizException::class, 'Authentication required');
     });
 
     it('sets default configuration', function () {
-        $client = new BlaaizClient('test-key');
+        $client = new BlaaizClient(['api_key' => 'test-key']);
 
         $reflection = new ReflectionClass($client);
         
@@ -198,7 +199,7 @@ describe('BlaaizClient constructor', function () {
             'timeout' => 60
         ];
 
-        $client = new BlaaizClient('test-key', $options);
+        $client = new BlaaizClient(array_merge(['api_key' => 'test-key'], $options));
 
         $reflection = new ReflectionClass($client);
         
@@ -264,7 +265,7 @@ describe('BlaaizClient.downloadFile', function () {
 
 describe('BlaaizClient private methods', function () {
     it('maps content types to extensions correctly', function () {
-        $client = new BlaaizClient('test-key');
+        $client = new BlaaizClient(['api_key' => 'test-key']);
         $reflection = new ReflectionClass($client);
         $method = $reflection->getMethod('getExtensionFromContentType');
         $method->setAccessible(true);
@@ -277,7 +278,7 @@ describe('BlaaizClient private methods', function () {
     });
 
     it('handles content type with charset', function () {
-        $client = new BlaaizClient('test-key');
+        $client = new BlaaizClient(['api_key' => 'test-key']);
         $reflection = new ReflectionClass($client);
         $method = $reflection->getMethod('getExtensionFromContentType');
         $method->setAccessible(true);

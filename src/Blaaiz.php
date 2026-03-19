@@ -10,6 +10,8 @@ use Blaaiz\LaravelSdk\Services\CustomerService;
 use Blaaiz\LaravelSdk\Services\FeesService;
 use Blaaiz\LaravelSdk\Services\FileService;
 use Blaaiz\LaravelSdk\Services\PayoutService;
+use Blaaiz\LaravelSdk\Services\RateService;
+use Blaaiz\LaravelSdk\Services\SwapService;
 use Blaaiz\LaravelSdk\Services\TransactionService;
 use Blaaiz\LaravelSdk\Services\VirtualBankAccountService;
 use Blaaiz\LaravelSdk\Services\WalletService;
@@ -30,10 +32,12 @@ class Blaaiz
     public FeesService $fees;
     public FileService $files;
     public WebhookService $webhooks;
+    public RateService $rates;
+    public SwapService $swaps;
 
-    public function __construct(string $apiKey, array $options = [])
+    public function __construct(array $options = [])
     {
-        $this->client = new BlaaizClient($apiKey, $options);
+        $this->client = new BlaaizClient($options);
 
         $this->customers = new CustomerService($this->client);
         $this->collections = new CollectionService($this->client);
@@ -46,6 +50,8 @@ class Blaaiz
         $this->fees = new FeesService($this->client);
         $this->files = new FileService($this->client);
         $this->webhooks = new WebhookService($this->client);
+        $this->rates = new RateService($this->client);
+        $this->swaps = new SwapService($this->client);
     }
 
     public function testConnection(): bool
@@ -193,5 +199,15 @@ class Blaaiz
     public function webhooks(): WebhookService
     {
         return $this->webhooks;
+    }
+
+    public function rates(): RateService
+    {
+        return $this->rates;
+    }
+
+    public function swaps(): SwapService
+    {
+        return $this->swaps;
     }
 }

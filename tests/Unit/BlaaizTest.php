@@ -16,7 +16,7 @@ use Blaaiz\LaravelSdk\Services\WebhookService;
 
 describe('Blaaiz SDK main class', function () {
     it('creates instance with API key', function () {
-        $blaaiz = new Blaaiz('test-api-key');
+        $blaaiz = new Blaaiz(['api_key' => 'test-api-key']);
 
         expect($blaaiz)->toBeInstanceOf(Blaaiz::class);
 
@@ -35,13 +35,13 @@ describe('Blaaiz SDK main class', function () {
             'timeout' => 60
         ];
 
-        $blaaiz = new Blaaiz('test-key', $options);
+        $blaaiz = new Blaaiz(array_merge(['api_key' => 'test-key'], $options));
 
         expect($blaaiz)->toBeInstanceOf(Blaaiz::class);
     });
 
     it('initializes all service properties', function () {
-        $blaaiz = new Blaaiz('test-key');
+        $blaaiz = new Blaaiz(['api_key' => 'test-key']);
 
         expect($blaaiz->customers)->toBeInstanceOf(CustomerService::class);
         expect($blaaiz->collections)->toBeInstanceOf(CollectionService::class);
@@ -54,10 +54,12 @@ describe('Blaaiz SDK main class', function () {
         expect($blaaiz->fees)->toBeInstanceOf(FeesService::class);
         expect($blaaiz->files)->toBeInstanceOf(FileService::class);
         expect($blaaiz->webhooks)->toBeInstanceOf(WebhookService::class);
+        expect($blaaiz->rates)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\RateService::class);
+        expect($blaaiz->swaps)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\SwapService::class);
     });
 
     it('passes the same client instance to all services', function () {
-        $blaaiz = new Blaaiz('test-key');
+        $blaaiz = new Blaaiz(['api_key' => 'test-key']);
 
         // Get the client from the main SDK
         $reflection = new ReflectionClass($blaaiz);
@@ -77,7 +79,9 @@ describe('Blaaiz SDK main class', function () {
             $blaaiz->currencies,
             $blaaiz->fees,
             $blaaiz->files,
-            $blaaiz->webhooks
+            $blaaiz->webhooks,
+            $blaaiz->rates,
+            $blaaiz->swaps
         ];
 
         foreach ($services as $service) {
@@ -91,13 +95,13 @@ describe('Blaaiz SDK main class', function () {
     });
 
     it('has public service properties', function () {
-        $blaaiz = new Blaaiz('test-key');
+        $blaaiz = new Blaaiz(['api_key' => 'test-key']);
 
         $reflection = new ReflectionClass($blaaiz);
 
         $serviceProperties = [
             'customers', 'collections', 'payouts', 'wallets', 'virtualBankAccounts',
-            'transactions', 'banks', 'currencies', 'fees', 'files', 'webhooks'
+            'transactions', 'banks', 'currencies', 'fees', 'files', 'webhooks', 'rates', 'swaps'
         ];
 
         foreach ($serviceProperties as $propertyName) {
@@ -107,7 +111,7 @@ describe('Blaaiz SDK main class', function () {
     });
 
     it('has protected client property', function () {
-        $blaaiz = new Blaaiz('test-key');
+        $blaaiz = new Blaaiz(['api_key' => 'test-key']);
 
         $reflection = new ReflectionClass($blaaiz);
         $clientProperty = $reflection->getProperty('client');
