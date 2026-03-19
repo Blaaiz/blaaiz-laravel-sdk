@@ -17,7 +17,7 @@ describe('Blaaiz high level methods', function () {
 
     it('testConnection returns true on success', function () {
         $mockClient = Mockery::mock(\Blaaiz\LaravelSdk\BlaaizClient::class);
-        $sdk = new Blaaiz('key');
+        $sdk = new Blaaiz(['api_key' => 'key']);
         
         // Replace the currencies service with a mock
         $mockCurrencyService = Mockery::mock(CurrencyService::class);
@@ -34,7 +34,7 @@ describe('Blaaiz high level methods', function () {
     });
 
     it('testConnection returns false on error', function () {
-        $sdk = new Blaaiz('key');
+        $sdk = new Blaaiz(['api_key' => 'key']);
         
         // Replace the currencies service with a mock that throws exception
         $mockCurrencyService = Mockery::mock(CurrencyService::class);
@@ -51,7 +51,7 @@ describe('Blaaiz high level methods', function () {
     });
 
     it('createCompletePayout full flow', function () {
-        $sdk = new Blaaiz('key');
+        $sdk = new Blaaiz(['api_key' => 'key']);
         
         // Mock all required services
         $mockCustomerService = Mockery::mock(CustomerService::class);
@@ -135,7 +135,7 @@ describe('Blaaiz high level methods', function () {
     });
 
     it('createCompletePayout with existing customer', function () {
-        $sdk = new Blaaiz('key');
+        $sdk = new Blaaiz(['api_key' => 'key']);
         
         // Mock required services (no customer creation needed)
         $mockFeesService = Mockery::mock(FeesService::class);
@@ -187,7 +187,7 @@ describe('Blaaiz high level methods', function () {
     });
 
     it('createCompletePayout propagates errors', function () {
-        $sdk = new Blaaiz('key');
+        $sdk = new Blaaiz(['api_key' => 'key']);
         
         $mockFeesService = Mockery::mock(FeesService::class);
         $mockPayoutService = Mockery::mock(PayoutService::class);
@@ -226,7 +226,7 @@ describe('Blaaiz high level methods', function () {
     });
 
     it('createCompleteCollection with VBA', function () {
-        $sdk = new Blaaiz('key');
+        $sdk = new Blaaiz(['api_key' => 'key']);
         
         // Mock all required services
         $mockCustomerService = Mockery::mock(CustomerService::class);
@@ -304,7 +304,7 @@ describe('Blaaiz high level methods', function () {
     });
 
     it('createCompleteCollection without VBA', function () {
-        $sdk = new Blaaiz('key');
+        $sdk = new Blaaiz(['api_key' => 'key']);
         
         $mockCustomerService = Mockery::mock(CustomerService::class);
         $mockCollectionService = Mockery::mock(CollectionService::class);
@@ -352,7 +352,7 @@ describe('Blaaiz high level methods', function () {
     });
 
     it('createCompleteCollection propagates errors', function () {
-        $sdk = new Blaaiz('key');
+        $sdk = new Blaaiz(['api_key' => 'key']);
         
         $mockCustomerService = Mockery::mock(CustomerService::class);
         $mockCollectionService = Mockery::mock(CollectionService::class);

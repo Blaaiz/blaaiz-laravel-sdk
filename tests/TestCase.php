@@ -3,13 +3,24 @@
 namespace Blaaiz\LaravelSdk\Tests;
 
 use Blaaiz\LaravelSdk\BlaaizServiceProvider;
+use Dotenv\Dotenv;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
     protected function setUp(): void
     {
+        $this->loadEnvFile();
         parent::setUp();
+    }
+
+    protected function loadEnvFile(): void
+    {
+        $envPath = __DIR__ . '/..';
+        if (file_exists($envPath . '/.env')) {
+            $dotenv = Dotenv::createImmutable($envPath);
+            $dotenv->safeLoad();
+        }
     }
 
     /**
