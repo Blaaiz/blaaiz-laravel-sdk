@@ -4,7 +4,6 @@ use Blaaiz\LaravelSdk\Services\WebhookService;
 use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
 use Blaaiz\LaravelSdk\BlaaizClient;
 use Carbon\Carbon;
-use Mockery;
 
 describe('WebhookService', function () {
     beforeEach(function () {

@@ -10,7 +10,6 @@ use Blaaiz\LaravelSdk\Services\FeesService;
 use Blaaiz\LaravelSdk\Services\FileService;
 use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
 use Blaaiz\LaravelSdk\BlaaizClient;
-use Mockery;
 
 describe('CollectionService', function () {
     beforeEach(function () {
@@ -58,6 +57,24 @@ describe('CollectionService', function () {
         expect($result)->toBe(['data' => ['id' => 'collection-123']]);
     });
 
+    it('calls makeRequest for initiateCrypto', function () {
+        $cryptoData = [
+            'amount' => 100,
+            'network' => 'ethereum',
+            'token' => 'USDT',
+            'wallet_id' => 'w1',
+        ];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/collection/crypto', $cryptoData)
+            ->andReturn(['data' => ['address' => '0x123']]);
+
+        $result = $this->service->initiateCrypto($cryptoData);
+        expect($result)->toBe(['data' => ['address' => '0x123']]);
+    });
+
     it('validates customer_id for attachCustomer', function () {
         expect(fn() => $this->service->attachCustomer([]))
             ->toThrow(BlaaizException::class, 'customer_id is required');
@@ -77,6 +94,17 @@ describe('CollectionService', function () {
 
         $result = $this->service->attachCustomer($attachData);
         expect($result)->toBe(['data' => ['success' => true]]);
+    });
+
+    it('calls makeRequest for getCryptoNetworks', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', '/api/external/collection/crypto/networks')
+            ->andReturn(['data' => ['ethereum', 'tron']]);
+
+        $result = $this->service->getCryptoNetworks();
+        expect($result)->toBe(['data' => ['ethereum', 'tron']]);
     });
 
     it('validates required fields for acceptInteracMoneyRequest', function () {

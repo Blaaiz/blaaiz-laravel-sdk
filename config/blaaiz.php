@@ -10,7 +10,21 @@ return [
     | This key is used to authenticate with the Blaaiz API.
     |
     */
-    'api_key' => env('BLAAIZ_API_KEY', 'test-key'),
+    'api_key' => env('BLAAIZ_API_KEY', ''),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Blaaiz OAuth Credentials
+    |--------------------------------------------------------------------------
+    |
+    | OAuth 2.0 client credentials for the Blaaiz API. When both client_id
+    | and client_secret are provided, the SDK will use OAuth authentication.
+    | Otherwise, it falls back to the legacy API key above.
+    |
+    */
+    'client_id' => env('BLAAIZ_CLIENT_ID', ''),
+    'client_secret' => env('BLAAIZ_CLIENT_SECRET', ''),
+    'oauth_scope' => env('BLAAIZ_OAUTH_SCOPE', ''),
 
     /*
     |--------------------------------------------------------------------------

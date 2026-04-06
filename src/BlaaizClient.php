@@ -9,44 +9,142 @@ use GuzzleHttp\Exception\RequestException;
 
 class BlaaizClient
 {
-    protected string $apiKey;
     protected string $baseUrl;
     protected int $timeout;
     protected Client $httpClient;
     protected array $defaultHeaders;
 
-    public function __construct(string $apiKey, array $options = [])
+    protected string $apiKey;
+    protected string $clientId;
+    protected string $clientSecret;
+    protected string $oauthScope;
+    protected bool $useOAuth;
+
+    protected const ALL_SCOPES = [
+        'wallet:read', 'currency:read', 'bank:read', 'customer:read', 'customer:write',
+        'beneficiary:read', 'virtual-account:read', 'virtual-account:create', 'virtual-account:close',
+        'collection:create', 'collection:crypto:create', 'collection:interac:accept',
+        'payout:create', 'swap:create', 'transaction:read', 'fees:read', 'file:upload',
+        'webhook:read', 'webhook:write', 'webhook:replay', 'rates:read',
+    ];
+
+    protected ?string $accessToken = null;
+    protected ?int $tokenExpiresAt = null;
+
+    public function __construct(array $options = [])
     {
-        if (empty($apiKey)) {
-            throw new BlaaizException('API key is required');
+        $this->clientId = $options['client_id'] ?? '';
+        $this->clientSecret = $options['client_secret'] ?? '';
+        $this->oauthScope = $options['oauth_scope'] ?? implode(' ', self::ALL_SCOPES);
+        $this->apiKey = $options['api_key'] ?? '';
+
+        $this->useOAuth = !empty($this->clientId) && !empty($this->clientSecret);
+
+        if (!$this->useOAuth && empty($this->apiKey)) {
+            throw new BlaaizException(
+                'Authentication required: provide either BLAAIZ_CLIENT_ID and BLAAIZ_CLIENT_SECRET for OAuth, or BLAAIZ_API_KEY for legacy authentication'
+            );
         }
 
-        $this->apiKey = $apiKey;
         $this->baseUrl = $options['base_url'] ?? 'https://api-dev.blaaiz.com';
         $this->timeout = $options['timeout'] ?? 30;
 
         $this->defaultHeaders = [
-            'x-blaaiz-api-key' => $this->apiKey,
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
             'User-Agent' => 'Blaaiz-Laravel-SDK/1.0.0',
         ];
 
-        $this->httpClient = new Client([
+        if (!$this->useOAuth) {
+            $this->defaultHeaders['x-blaaiz-api-key'] = $this->apiKey;
+        }
+
+        $this->httpClient = $this->createHttpClient([
             'base_uri' => $this->baseUrl,
             'timeout' => $this->timeout,
             'headers' => $this->defaultHeaders,
         ]);
     }
 
+    protected function getOAuthToken(): string
+    {
+        if ($this->accessToken && $this->tokenExpiresAt && time() < $this->tokenExpiresAt) {
+            return $this->accessToken;
+        }
+
+        try {
+            $client = $this->createHttpClient([
+                'base_uri' => $this->baseUrl,
+                'timeout' => $this->timeout,
+            ]);
+
+            $response = $client->request('POST', '/oauth/token', [
+                'form_params' => [
+                    'grant_type' => 'client_credentials',
+                    'client_id' => $this->clientId,
+                    'client_secret' => $this->clientSecret,
+                    'scope' => $this->oauthScope,
+                ],
+            ]);
+
+            $body = json_decode($response->getBody()->getContents(), true);
+
+            if (json_last_error() !== JSON_ERROR_NONE || empty($body['access_token'])) {
+                throw new BlaaizException(
+                    'Failed to parse OAuth token response',
+                    $response->getStatusCode(),
+                    'OAUTH_PARSE_ERROR'
+                );
+            }
+
+            $this->accessToken = $body['access_token'];
+            // Refresh 60 seconds before expiry to avoid edge cases
+            $this->tokenExpiresAt = time() + ($body['expires_in'] ?? 900) - 60;
+
+            return $this->accessToken;
+
+        } catch (RequestException $e) {
+            $statusCode = $e->getResponse() ? $e->getResponse()->getStatusCode() : null;
+            $responseBody = $e->getResponse() ? $e->getResponse()->getBody()->getContents() : null;
+            $errorData = $responseBody ? json_decode($responseBody, true) : null;
+
+            throw new BlaaizException(
+                $errorData['error_description'] ?? $errorData['message'] ?? 'OAuth token request failed: ' . $e->getMessage(),
+                $statusCode,
+                $errorData['error'] ?? 'OAUTH_ERROR'
+            );
+
+        } catch (GuzzleException $e) {
+            throw new BlaaizException(
+                "OAuth token request failed: {$e->getMessage()}",
+                null,
+                'OAUTH_ERROR'
+            );
+        }
+    }
+
+    protected function getAuthHeaders(): array
+    {
+        if ($this->useOAuth) {
+            $token = $this->getOAuthToken();
+            return ['Authorization' => "Bearer {$token}"];
+        }
+
+        return ['x-blaaiz-api-key' => $this->apiKey];
+    }
+
     public function makeRequest(string $method, string $endpoint, ?array $data = null, array $headers = []): array
     {
         try {
+            $requestHeaders = array_merge($this->defaultHeaders, $this->getAuthHeaders(), $headers);
+
             $options = [
-                'headers' => array_merge($this->defaultHeaders, $headers),
+                'headers' => $requestHeaders,
             ];
 
-            if ($data !== null && strtoupper($method) !== 'GET') {
+            if ($data !== null && strtoupper($method) === 'GET') {
+                $options['query'] = $data;
+            } elseif ($data !== null) {
                 $options['json'] = $data;
             }
 
@@ -99,6 +197,10 @@ class BlaaizClient
                 'GUZZLE_ERROR'
             );
         } catch (\Exception $e) {
+            if ($e instanceof BlaaizException) {
+                throw $e;
+            }
+
             throw new BlaaizException(
                 "Unexpected error: {$e->getMessage()}",
                 null,
@@ -120,7 +222,7 @@ class BlaaizClient
                 $headers['Content-Disposition'] = "attachment; filename=\"{$filename}\"";
             }
 
-            $client = new Client(['timeout' => $this->timeout]);
+            $client = $this->createHttpClient(['timeout' => $this->timeout]);
 
             $response = $client->request('PUT', $presignedUrl, [
                 'headers' => $headers,
@@ -160,7 +262,7 @@ class BlaaizClient
     public function downloadFile(string $url): array
     {
         try {
-            $client = new Client(['timeout' => $this->timeout]);
+            $client = $this->createHttpClient(['timeout' => $this->timeout]);
 
             $response = $client->request('GET', $url, [
                 'headers' => [
@@ -234,5 +336,10 @@ class BlaaizClient
         $contentType = explode(';', $contentType)[0];
 
         return $mimeToExt[$contentType] ?? null;
+    }
+
+    protected function createHttpClient(array $config): Client
+    {
+        return new Client($config);
     }
 }

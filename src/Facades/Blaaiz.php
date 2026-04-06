@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Blaaiz\LaravelSdk\Services\FeesService fees()
  * @method static \Blaaiz\LaravelSdk\Services\FileService files()
  * @method static \Blaaiz\LaravelSdk\Services\WebhookService webhooks()
+ * @method static \Blaaiz\LaravelSdk\Services\RateService rates()
+ * @method static \Blaaiz\LaravelSdk\Services\SwapService swaps()
  * @method static bool testConnection()
  * @method static array createCompletePayout(array $payoutConfig)
  * @method static array createCompleteCollection(array $collectionConfig)
