@@ -12,7 +12,7 @@ class UploadKycController extends Controller
     {
         $validated = $request->validate([
             'file' => ['required', 'file'],
-            'file_category' => ['required', 'in:identity,proof_of_address,liveness_check'],
+            'file_category' => ['required', 'in:identity,identity_back,proof_of_address,liveness_check'],
         ]);
 
         $result = Blaaiz::customers()->uploadFileComplete($customerId, [
