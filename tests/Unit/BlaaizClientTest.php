@@ -3,11 +3,27 @@
 use Blaaiz\LaravelSdk\BlaaizClient;
 use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+
+function makeQueuedBlaaizClient(array $options, array $queuedClients): BlaaizClient
+{
+    return new class($options, $queuedClients) extends BlaaizClient {
+        public function __construct(array $options, private array $queuedClients)
+        {
+            parent::__construct($options);
+        }
+
+        protected function createHttpClient(array $config): Client
+        {
+            return array_shift($this->queuedClients) ?? parent::createHttpClient($config);
+        }
+    };
+}
 
 describe('BlaaizClient.makeRequest', function () {
     it('resolves on successful request', function () {
@@ -97,6 +113,64 @@ describe('BlaaizClient.makeRequest', function () {
 
         expect(fn() => $client->makeRequest('GET', '/test'))
             ->toThrow(BlaaizException::class);
+    });
+
+    it('uses non-2xx response body when http errors are disabled', function () {
+        $mockHandler = new MockHandler([
+            new Response(500, ['Content-Type' => 'application/json'], json_encode([
+                'message' => 'server exploded',
+                'code' => 'SERVER_ERROR',
+            ])),
+        ]);
+
+        $client = new Client([
+            'handler' => HandlerStack::create($mockHandler),
+            'http_errors' => false,
+        ]);
+
+        $blaaizClient = new BlaaizClient(['api_key' => 'test-key']);
+
+        $reflection = new ReflectionClass($blaaizClient);
+        $property = $reflection->getProperty('httpClient');
+        $property->setAccessible(true);
+        $property->setValue($blaaizClient, $client);
+
+        expect(fn() => $blaaizClient->makeRequest('GET', '/test'))
+            ->toThrow(BlaaizException::class, 'server exploded');
+    });
+
+    it('falls back to request exception message when response body is empty', function () {
+        $mockHandler = new MockHandler([
+            new RequestException('Connection timeout', new Request('GET', '/test'))
+        ]);
+
+        $client = new Client(['handler' => HandlerStack::create($mockHandler)]);
+        $blaaizClient = new BlaaizClient(['api_key' => 'test-key']);
+
+        $reflection = new ReflectionClass($blaaizClient);
+        $property = $reflection->getProperty('httpClient');
+        $property->setAccessible(true);
+        $property->setValue($blaaizClient, $client);
+
+        expect(fn() => $blaaizClient->makeRequest('GET', '/test'))
+            ->toThrow(BlaaizException::class, 'Connection timeout');
+    });
+
+    it('wraps unexpected exceptions from handlers', function () {
+        $handler = static function (): void {
+            throw new RuntimeException('boom');
+        };
+
+        $client = new Client(['handler' => $handler]);
+        $blaaizClient = new BlaaizClient(['api_key' => 'test-key']);
+
+        $reflection = new ReflectionClass($blaaizClient);
+        $property = $reflection->getProperty('httpClient');
+        $property->setAccessible(true);
+        $property->setValue($blaaizClient, $client);
+
+        expect(fn() => $blaaizClient->makeRequest('GET', '/test'))
+            ->toThrow(BlaaizException::class, 'Unexpected error: boom');
     });
 
     it('sends correct headers', function () {
@@ -215,51 +289,205 @@ describe('BlaaizClient constructor', function () {
 
 describe('BlaaizClient.uploadFile', function () {
     it('uploads file successfully', function () {
-        // This is an integration test - for unit tests we'd need to mock the client creation
-        // which would require refactoring the uploadFile method
-        expect(true)->toBeTrue();
+        $uploadClient = new Client([
+            'handler' => HandlerStack::create(new MockHandler([
+                new Response(200, ['ETag' => '"etag-123"']),
+            ])),
+        ]);
+
+        $client = makeQueuedBlaaizClient(['api_key' => 'test-key'], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $uploadClient,
+        ]);
+
+        $result = $client->uploadFile('https://example.com/upload', 'file-content', 'application/pdf', 'test.pdf');
+
+        expect($result)->toBe([
+            'status' => 200,
+            'etag' => '"etag-123"',
+        ]);
     });
 
     it('uploads file without content type and filename', function () {
-        // This is an integration test - for unit tests we'd need to mock the client creation
-        expect(true)->toBeTrue();
+        $uploadClient = new Client([
+            'handler' => HandlerStack::create(new MockHandler([
+                new Response(200, ['etag' => '"etag-456"']),
+            ])),
+        ]);
+
+        $client = makeQueuedBlaaizClient(['api_key' => 'test-key'], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $uploadClient,
+        ]);
+
+        $result = $client->uploadFile('https://example.com/upload', 'file-content');
+
+        expect($result['etag'])->toBe('"etag-456"');
     });
 
     it('throws exception when no ETag received', function () {
-        // This is an integration test - for unit tests we'd need to mock the client creation
-        expect(true)->toBeTrue();
+        $uploadClient = new Client([
+            'handler' => HandlerStack::create(new MockHandler([
+                new Response(200, []),
+            ])),
+        ]);
+
+        $client = makeQueuedBlaaizClient(['api_key' => 'test-key'], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $uploadClient,
+        ]);
+
+        expect(fn() => $client->uploadFile('https://example.com/upload', 'file-content'))
+            ->toThrow(BlaaizException::class, 'S3 upload failed: No ETag received from S3');
     });
 
-    it('handles S3 upload errors', function () {
-        // This is an integration test - for unit tests we'd need to mock the client creation
-        expect(true)->toBeTrue();
+    it('handles S3 upload request exceptions', function () {
+        $uploadClient = new Client([
+            'handler' => HandlerStack::create(new MockHandler([
+                new RequestException(
+                    'Upload failed',
+                    new Request('PUT', 'https://example.com/upload'),
+                    new Response(403, [], 'forbidden')
+                ),
+            ])),
+        ]);
+
+        $client = makeQueuedBlaaizClient(['api_key' => 'test-key'], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $uploadClient,
+        ]);
+
+        expect(fn() => $client->uploadFile('https://example.com/upload', 'file-content'))
+            ->toThrow(BlaaizException::class, 'S3 upload failed with status 403: forbidden');
+    });
+
+    it('handles S3 upload guzzle exceptions', function () {
+        $handler = static function (): never {
+            throw new class('Network failed') extends RuntimeException implements GuzzleException {};
+        };
+
+        $uploadClient = new Client(['handler' => $handler]);
+
+        $client = makeQueuedBlaaizClient(['api_key' => 'test-key'], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $uploadClient,
+        ]);
+
+        expect(fn() => $client->uploadFile('https://example.com/upload', 'file-content'))
+            ->toThrow(BlaaizException::class, 'S3 upload request failed: Network failed');
     });
 });
 
 describe('BlaaizClient.downloadFile', function () {
     it('downloads file successfully', function () {
-        // This is an integration test - for unit tests we'd need to mock the client creation
-        expect(true)->toBeTrue();
+        $downloadClient = new Client([
+            'handler' => HandlerStack::create(new MockHandler([
+                new Response(200, [
+                    'Content-Type' => 'image/jpeg',
+                    'Content-Disposition' => 'attachment; filename="passport.jpg"',
+                ], 'image-bytes'),
+            ])),
+        ]);
+
+        $client = makeQueuedBlaaizClient(['api_key' => 'test-key'], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $downloadClient,
+        ]);
+
+        $result = $client->downloadFile('https://example.com/image.jpg');
+
+        expect($result)->toBe([
+            'content' => 'image-bytes',
+            'content_type' => 'image/jpeg',
+            'filename' => 'passport.jpg',
+        ]);
     });
 
     it('extracts filename from URL when not in headers', function () {
-        // This is an integration test - for unit tests we'd need to mock the client creation
-        expect(true)->toBeTrue();
+        $downloadClient = new Client([
+            'handler' => HandlerStack::create(new MockHandler([
+                new Response(200, ['Content-Type' => 'image/jpeg'], 'image-bytes'),
+            ])),
+        ]);
+
+        $client = makeQueuedBlaaizClient(['api_key' => 'test-key'], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $downloadClient,
+        ]);
+
+        $result = $client->downloadFile('https://example.com/documents/passport.jpg');
+
+        expect($result['filename'])->toBe('passport.jpg');
     });
 
     it('adds extension when filename has none and content type is known', function () {
-        // This is an integration test - for unit tests we'd need to mock the client creation
-        expect(true)->toBeTrue();
+        $downloadClient = new Client([
+            'handler' => HandlerStack::create(new MockHandler([
+                new Response(200, ['Content-Type' => 'application/pdf'], 'pdf-bytes'),
+            ])),
+        ]);
+
+        $client = makeQueuedBlaaizClient(['api_key' => 'test-key'], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $downloadClient,
+        ]);
+
+        $result = $client->downloadFile('https://example.com/download');
+
+        expect($result['filename'])->toBe('download.pdf');
     });
 
     it('handles download errors', function () {
-        // This is an integration test - for unit tests we'd need to mock the client creation
-        expect(true)->toBeTrue();
+        $downloadClient = new Client([
+            'handler' => HandlerStack::create(new MockHandler([
+                new RequestException(
+                    'Not found',
+                    new Request('GET', 'https://example.com/file'),
+                    new Response(404, [], 'missing')
+                ),
+            ])),
+        ]);
+
+        $client = makeQueuedBlaaizClient(['api_key' => 'test-key'], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $downloadClient,
+        ]);
+
+        expect(fn() => $client->downloadFile('https://example.com/file'))
+            ->toThrow(BlaaizException::class, 'File download failed: Not found');
+    });
+
+    it('throws when download returns a non-success status without request exceptions', function () {
+        $downloadClient = new Client([
+            'handler' => HandlerStack::create(new MockHandler([
+                new Response(500, ['Content-Type' => 'text/plain'], 'server-error'),
+            ])),
+            'http_errors' => false,
+        ]);
+
+        $client = makeQueuedBlaaizClient(['api_key' => 'test-key'], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $downloadClient,
+        ]);
+
+        expect(fn() => $client->downloadFile('https://example.com/file'))
+            ->toThrow(BlaaizException::class, 'Failed to download file: HTTP 500');
     });
 
     it('handles network errors', function () {
-        // This is an integration test - for unit tests we'd need to mock the client creation
-        expect(true)->toBeTrue();
+        $handler = static function (): never {
+            throw new class('DNS failed') extends RuntimeException implements GuzzleException {};
+        };
+
+        $downloadClient = new Client(['handler' => $handler]);
+
+        $client = makeQueuedBlaaizClient(['api_key' => 'test-key'], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $downloadClient,
+        ]);
+
+        expect(fn() => $client->downloadFile('https://example.com/file'))
+            ->toThrow(BlaaizException::class, 'File download failed: DNS failed');
     });
 });
 

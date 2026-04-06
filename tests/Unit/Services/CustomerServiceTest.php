@@ -3,7 +3,6 @@
 use Blaaiz\LaravelSdk\Services\CustomerService;
 use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
 use Blaaiz\LaravelSdk\BlaaizClient;
-use Mockery;
 
 describe('CustomerService', function () {
     beforeEach(function () {
@@ -519,4 +518,3 @@ describe('CustomerService', function () {
         expect($result)->toBe(['data' => ['id' => $beneficiaryId, 'name' => 'John Doe']]);
     });
 });
-

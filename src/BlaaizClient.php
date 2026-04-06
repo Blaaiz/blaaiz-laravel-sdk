@@ -25,7 +25,7 @@ class BlaaizClient
         'beneficiary:read', 'virtual-account:read', 'virtual-account:create', 'virtual-account:close',
         'collection:create', 'collection:crypto:create', 'collection:interac:accept',
         'payout:create', 'swap:create', 'transaction:read', 'fees:read', 'file:upload',
-        'webhook:read', 'webhook:write', 'webhook:replay',
+        'webhook:read', 'webhook:write', 'webhook:replay', 'rates:read',
     ];
 
     protected ?string $accessToken = null;
@@ -59,7 +59,7 @@ class BlaaizClient
             $this->defaultHeaders['x-blaaiz-api-key'] = $this->apiKey;
         }
 
-        $this->httpClient = new Client([
+        $this->httpClient = $this->createHttpClient([
             'base_uri' => $this->baseUrl,
             'timeout' => $this->timeout,
             'headers' => $this->defaultHeaders,
@@ -73,7 +73,7 @@ class BlaaizClient
         }
 
         try {
-            $client = new Client([
+            $client = $this->createHttpClient([
                 'base_uri' => $this->baseUrl,
                 'timeout' => $this->timeout,
             ]);
@@ -222,7 +222,7 @@ class BlaaizClient
                 $headers['Content-Disposition'] = "attachment; filename=\"{$filename}\"";
             }
 
-            $client = new Client(['timeout' => $this->timeout]);
+            $client = $this->createHttpClient(['timeout' => $this->timeout]);
 
             $response = $client->request('PUT', $presignedUrl, [
                 'headers' => $headers,
@@ -262,7 +262,7 @@ class BlaaizClient
     public function downloadFile(string $url): array
     {
         try {
-            $client = new Client(['timeout' => $this->timeout]);
+            $client = $this->createHttpClient(['timeout' => $this->timeout]);
 
             $response = $client->request('GET', $url, [
                 'headers' => [
@@ -336,5 +336,10 @@ class BlaaizClient
         $contentType = explode(';', $contentType)[0];
 
         return $mimeToExt[$contentType] ?? null;
+    }
+
+    protected function createHttpClient(array $config): Client
+    {
+        return new Client($config);
     }
 }

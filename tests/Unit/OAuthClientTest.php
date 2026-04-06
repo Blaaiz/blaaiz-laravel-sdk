@@ -3,9 +3,27 @@
 use Blaaiz\LaravelSdk\BlaaizClient;
 use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+
+function makeQueuedOAuthClient(array $options, array $queuedClients): BlaaizClient
+{
+    return new class($options, $queuedClients) extends BlaaizClient {
+        public function __construct(array $options, private array $queuedClients)
+        {
+            parent::__construct($options);
+        }
+
+        protected function createHttpClient(array $config): Client
+        {
+            return array_shift($this->queuedClients) ?? parent::createHttpClient($config);
+        }
+    };
+}
 
 describe('BlaaizClient OAuth', function () {
     it('creates instance with OAuth credentials', function () {
@@ -211,5 +229,81 @@ describe('BlaaizClient OAuth', function () {
         expect($scope)->toContain('wallet:read');
         expect($scope)->toContain('swap:create');
         expect($scope)->toContain('payout:create');
+    });
+
+    it('throws a parse error when oauth token response is invalid', function () {
+        $tokenClient = new Client([
+            'handler' => HandlerStack::create(new MockHandler([
+                new Response(200, ['Content-Type' => 'application/json'], 'not-json'),
+            ])),
+        ]);
+
+        $client = makeQueuedOAuthClient([
+            'client_id' => 'test-client-id',
+            'client_secret' => 'test-client-secret',
+        ], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $tokenClient,
+        ]);
+
+        $reflection = new ReflectionClass($client);
+        $method = $reflection->getMethod('getOAuthToken');
+        $method->setAccessible(true);
+
+        expect(fn() => $method->invoke($client))
+            ->toThrow(BlaaizException::class, 'Failed to parse OAuth token response');
+    });
+
+    it('uses oauth error_description from request exceptions', function () {
+        $tokenClient = new Client([
+            'handler' => HandlerStack::create(new MockHandler([
+                new RequestException(
+                    'Unauthorized',
+                    new Request('POST', '/oauth/token'),
+                    new Response(401, ['Content-Type' => 'application/json'], json_encode([
+                        'error' => 'invalid_client',
+                        'error_description' => 'Invalid client credentials',
+                    ]))
+                ),
+            ])),
+        ]);
+
+        $client = makeQueuedOAuthClient([
+            'client_id' => 'test-client-id',
+            'client_secret' => 'test-client-secret',
+        ], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $tokenClient,
+        ]);
+
+        $reflection = new ReflectionClass($client);
+        $method = $reflection->getMethod('getOAuthToken');
+        $method->setAccessible(true);
+
+        expect(fn() => $method->invoke($client))
+            ->toThrow(BlaaizException::class, 'Invalid client credentials');
+    });
+
+    it('wraps guzzle exceptions when fetching oauth tokens', function () {
+        $handler = static function (): never {
+            throw new class('Token endpoint unreachable') extends RuntimeException implements GuzzleException {};
+        };
+
+        $tokenClient = new Client(['handler' => $handler]);
+
+        $client = makeQueuedOAuthClient([
+            'client_id' => 'test-client-id',
+            'client_secret' => 'test-client-secret',
+        ], [
+            new Client(['handler' => HandlerStack::create(new MockHandler([]))]),
+            $tokenClient,
+        ]);
+
+        $reflection = new ReflectionClass($client);
+        $method = $reflection->getMethod('getOAuthToken');
+        $method->setAccessible(true);
+
+        expect(fn() => $method->invoke($client))
+            ->toThrow(BlaaizException::class, 'OAuth token request failed: Token endpoint unreachable');
     });
 });
