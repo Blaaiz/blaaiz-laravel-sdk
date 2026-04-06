@@ -90,8 +90,8 @@ class CustomerService extends BaseService
             throw new BlaaizException('file_category is required');
         }
 
-        if (!in_array($fileCategory, ['identity', 'proof_of_address', 'liveness_check'])) {
-            throw new BlaaizException('file_category must be one of: identity, proof_of_address, liveness_check');
+        if (!in_array($fileCategory, ['identity', 'identity_back', 'proof_of_address', 'liveness_check'])) {
+            throw new BlaaizException('file_category must be one of: identity, identity_back, proof_of_address, liveness_check');
         }
 
         try {
@@ -132,6 +132,7 @@ class CustomerService extends BaseService
 
             $fileFieldMapping = [
                 'identity' => 'id_file',
+                'identity_back' => 'id_file_back',
                 'liveness_check' => 'liveness_check_file',
                 'proof_of_address' => 'proof_of_address_file',
             ];

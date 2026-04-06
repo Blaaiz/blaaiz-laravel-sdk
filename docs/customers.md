@@ -58,6 +58,7 @@ $association = $blaaiz->customers()->uploadFiles('customer-id', [
 Common file keys:
 
 - `id_file`
+- `id_file_back`
 - `proof_of_address_file`
 - `liveness_check_file`
 
@@ -77,6 +78,7 @@ Required fields:
 Allowed `file_category` values:
 
 - `identity`
+- `identity_back`
 - `proof_of_address`
 - `liveness_check`
 

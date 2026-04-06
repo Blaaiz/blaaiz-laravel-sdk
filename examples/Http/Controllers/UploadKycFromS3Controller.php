@@ -13,7 +13,7 @@ class UploadKycFromS3Controller extends Controller
     {
         $validated = $request->validate([
             'path' => ['required', 'string'],
-            'file_category' => ['required', 'in:identity,proof_of_address,liveness_check'],
+            'file_category' => ['required', 'in:identity,identity_back,proof_of_address,liveness_check'],
         ]);
 
         $disk = Storage::disk('s3');

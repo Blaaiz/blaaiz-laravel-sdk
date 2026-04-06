@@ -211,7 +211,7 @@ describe('CustomerService', function () {
         expect(fn() => $this->service->uploadFileComplete('customer-123', [
             'file' => 'content',
             'file_category' => 'invalid'
-        ]))->toThrow(BlaaizException::class, 'file_category must be one of: identity, proof_of_address, liveness_check');
+        ]))->toThrow(BlaaizException::class, 'file_category must be one of: identity, identity_back, proof_of_address, liveness_check');
     });
 
     it('successfully uploads a file with Buffer content for uploadFileComplete', function () {
@@ -446,6 +446,7 @@ describe('CustomerService', function () {
     it('handles different file categories for uploadFileComplete', function () {
         $categories = [
             'identity' => 'id_file',
+            'identity_back' => 'id_file_back',
             'liveness_check' => 'liveness_check_file',
             'proof_of_address' => 'proof_of_address_file'
         ];
