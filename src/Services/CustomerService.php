@@ -26,9 +26,21 @@ class CustomerService extends BaseService
         return $this->client->makeRequest('POST', '/api/external/customer', $customerData);
     }
 
-    public function list(): array
+    public function list(array $filters = []): array
     {
-        return $this->client->makeRequest('GET', '/api/external/customer');
+        $query = [];
+        foreach ($filters as $key => $value) {
+            if ($value === null) {
+                continue;
+            }
+            if (is_bool($value)) {
+                $query[$key] = $value ? 'true' : 'false';
+            } else {
+                $query[$key] = $value;
+            }
+        }
+
+        return $this->client->makeRequest('GET', '/api/external/customer', $query ?: null);
     }
 
     public function get(string $customerId): array
