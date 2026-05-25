@@ -119,6 +119,22 @@ $customer = Blaaiz::customers()->create([
 ]);
 ```
 
+### List customers (with optional filters and pagination)
+
+```php
+$customers = Blaaiz::customers()->list();
+
+// With filters. Supported keys: email, id_number, registration_number,
+// verification_status, type. Set `paginate => true` to receive a paginated
+// response that includes `links` and `meta` (current_page, total, ...).
+$verified = Blaaiz::customers()->list([
+    'email' => 'john@example.com',
+    'verification_status' => 'VERIFIED',
+    'type' => 'individual',
+    'paginate' => true,
+]);
+```
+
 ### Initiate a payout
 
 ```php

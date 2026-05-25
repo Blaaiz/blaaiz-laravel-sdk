@@ -105,12 +105,34 @@ describe('CustomerService', function () {
         $this->mockClient
             ->shouldReceive('makeRequest')
             ->once()
-            ->with('GET', '/api/external/customer')
+            ->with('GET', '/api/external/customer', null)
             ->andReturn(['data' => []]);
 
         $result = $this->service->list();
 
         expect($result)->toBe(['data' => []]);
+    });
+
+    it('forwards filters as query parameters for list', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', '/api/external/customer', [
+                'email' => 'john@example.com',
+                'verification_status' => 'VERIFIED',
+                'type' => 'individual',
+                'paginate' => 'true',
+            ])
+            ->andReturn(['data' => [], 'meta' => ['current_page' => 1]]);
+
+        $result = $this->service->list([
+            'email' => 'john@example.com',
+            'verification_status' => 'VERIFIED',
+            'type' => 'individual',
+            'paginate' => true,
+        ]);
+
+        expect($result)->toBe(['data' => [], 'meta' => ['current_page' => 1]]);
     });
 
     it('throws exception for empty customer ID in get', function () {
