@@ -12,8 +12,11 @@ $payout = $blaaiz->payouts()->initiate([
     'from_amount' => 100,
     'bank_id' => 'bank-id',
     'account_number' => '0123456789',
+    'note' => 'Acme Ltd', // optional
 ]);
 ```
+
+`note` is optional. When set, it appears in the transaction description; if empty, it defaults to the business name.
 
 Always required:
 
@@ -140,3 +143,7 @@ Required:
 - `wallet_address`
 - `wallet_token`
 - `wallet_network`
+
+## Passing additional fields
+
+The payout payload is forwarded to the API as-is, so any field documented in the [API reference](https://docs.business.blaaiz.com) can be included even if it is not listed here (for example, `note`). The SDK only validates the fields it knows about and does not reject extra keys.
