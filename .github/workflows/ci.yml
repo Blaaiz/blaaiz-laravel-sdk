@@ -190,38 +190,11 @@ jobs:
           echo "✅ No debug statements found in production code"
         fi
 
-  publish-packagist:
+  notify-release:
     runs-on: ubuntu-22.04
     needs: [test, build]
     if: github.event_name == 'release' && github.event.action == 'published'
-    
-    steps:
-    - uses: actions/checkout@v4
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-
-    - name: Trigger Packagist update
-      env:
-        PACKAGIST_USERNAME: ${{ secrets.PACKAGIST_USERNAME }}
-        PACKAGIST_API_TOKEN: ${{ secrets.PACKAGIST_API_TOKEN }}
-      run: |
-        if [[ ! -z "$PACKAGIST_USERNAME" && ! -z "$PACKAGIST_API_TOKEN" ]]; then
-          curl -X POST \
-            -H "Content-Type: application/json" \
-            -d '{"repository":{"url":"https://github.com/${{ github.repository }}"}}' \
-            "https://packagist.org/api/update-package?username=$PACKAGIST_USERNAME&apiToken=$PACKAGIST_API_TOKEN"
-        else
-          echo "⚠️ Skipping Packagist update - credentials not configured"
-        fi
-
-  notify-release:
-    runs-on: ubuntu-22.04
-    needs: [publish-packagist]
-    if: github.event_name == 'release' && github.event.action == 'published'
-    
     steps:
     - name: Notify release success
       run: |
