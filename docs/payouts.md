@@ -13,10 +13,13 @@ $payout = $blaaiz->payouts()->initiate([
     'bank_id' => 'bank-id',
     'account_number' => '0123456789',
     'note' => 'Acme Ltd', // optional
+    'merchant_reference' => 'order-12345', // optional
 ]);
 ```
 
 `note` is optional. When set, it appears in the transaction description; if empty, it defaults to the business name.
+
+`merchant_reference` is optional. It is a string of maximum 255 characters. The value must be unique for each business. See [merchant reference](#merchant-reference).
 
 Always required:
 
@@ -147,3 +150,20 @@ Required:
 ## Passing additional fields
 
 The payout payload is forwarded to the API as-is, so any field documented in the [API reference](https://docs.business.blaaiz.com) can be included even if it is not listed here (for example, `note`). The SDK only validates the fields it knows about and does not reject extra keys.
+
+## merchant reference
+
+`merchant_reference` is an optional string of maximum 255 characters on `initiate`. It lets you attach your own reference to a payout.
+
+The value must be unique for each business. If you send a duplicate value, the API returns HTTP 422 with this error:
+
+```json
+{
+    "message": "...",
+    "errors": {
+        "merchant_reference": ["Could not proceed. Kindly check your merchant reference and try again"]
+    }
+}
+```
+
+Two different businesses can use the same value. The API returns `merchant_reference` on the payout transaction, on transaction list items, and on the payout webhook. To find a transaction by this value, see [Transactions](transactions-banks-currencies-rates.md).
