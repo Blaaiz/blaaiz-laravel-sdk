@@ -18,16 +18,16 @@ class WebhookService extends BaseService
         return $this->client->makeRequest('GET', '/api/external/webhook');
     }
 
-    public function update(array $webhookData): array
+    public function update(string $webhookId, array $webhookData): array
     {
-        return $this->client->makeRequest('PUT', '/api/external/webhook', $webhookData);
+        return $this->client->makeRequest('PUT', "/api/external/webhook/{$webhookId}", $webhookData);
     }
 
     public function replay(array $replayData): array
     {
         $this->validateRequiredFields($replayData, ['transaction_id']);
 
-        return $this->client->makeRequest('POST', '/api/external/webhook/replay', $replayData);
+        return $this->client->makeRequest('POST', '/api/external/webhook-replay', $replayData);
     }
 
     public function simulateInteracWebhook(array $simulateData): array
@@ -48,11 +48,11 @@ class WebhookService extends BaseService
         if (empty($secret)) {
             throw new BlaaizException('Webhook secret is required for signature verification');
         }
-        if(empty($timestamp)) {
+        if (empty($timestamp)) {
             throw new BlaaizException('Timestamp is required for signature verification');
         }
 
-        $signed = $timestamp . '.' . $rawBody;
+        $signed = $timestamp.'.'.$rawBody;
         $expected = hash_hmac('sha256', $signed, $secret);
 
         return hash_equals($expected, strtolower($signature));
@@ -60,7 +60,7 @@ class WebhookService extends BaseService
 
     public function constructEvent(string $payload, string $signature, string $timestamp, string $secret): array
     {
-        if (!$this->verifySignature($payload, $signature, $timestamp, $secret)) {
+        if (! $this->verifySignature($payload, $signature, $timestamp, $secret)) {
             throw new BlaaizException('Invalid webhook signature');
         }
 
