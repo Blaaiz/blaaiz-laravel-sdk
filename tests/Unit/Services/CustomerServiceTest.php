@@ -1,8 +1,8 @@
 <?php
 
-use Blaaiz\LaravelSdk\Services\CustomerService;
-use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
 use Blaaiz\LaravelSdk\BlaaizClient;
+use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
+use Blaaiz\LaravelSdk\Services\CustomerService;
 
 describe('CustomerService', function () {
     beforeEach(function () {
@@ -15,33 +15,41 @@ describe('CustomerService', function () {
     });
 
     it('validates required fields for create', function () {
-        expect(fn() => $this->service->create([]))
+        expect(fn () => $this->service->create([]))
             ->toThrow(BlaaizException::class, 'type is required');
 
-        expect(fn() => $this->service->create(['type' => 'individual']))
+        expect(fn () => $this->service->create(['type' => 'individual']))
             ->toThrow(BlaaizException::class, 'email is required');
 
-        expect(fn() => $this->service->create([
-            'type' => 'individual',
-            'email' => 'john@example.com',
-            'country' => 'NG'
-        ]))->toThrow(BlaaizException::class, 'id_type is required');
-
-        expect(fn() => $this->service->create([
+        expect(fn () => $this->service->create([
             'type' => 'individual',
             'email' => 'john@example.com',
             'country' => 'NG',
-            'id_type' => 'passport',
-            'id_number' => '12345'
         ]))->toThrow(BlaaizException::class, 'first_name is required when type is individual');
 
-        expect(fn() => $this->service->create([
+        expect(fn () => $this->service->create([
+            'type' => 'individual',
+            'email' => 'john@example.com',
+            'country' => 'NG',
+            'first_name' => 'John',
+            'last_name' => 'Doe',
+        ]))->toThrow(BlaaizException::class, 'id_type is required when type is individual');
+
+        expect(fn () => $this->service->create([
             'type' => 'individual',
             'email' => 'john@example.com',
             'country' => 'NG',
             'id_type' => 'passport',
             'id_number' => '12345',
-            'first_name' => 'John'
+        ]))->toThrow(BlaaizException::class, 'first_name is required when type is individual');
+
+        expect(fn () => $this->service->create([
+            'type' => 'individual',
+            'email' => 'john@example.com',
+            'country' => 'NG',
+            'id_type' => 'passport',
+            'id_number' => '12345',
+            'first_name' => 'John',
         ]))->toThrow(BlaaizException::class, 'last_name is required when type is individual');
     });
 
@@ -50,12 +58,27 @@ describe('CustomerService', function () {
             'type' => 'business',
             'email' => 'john@example.com',
             'country' => 'NG',
-            'id_type' => 'certificate_of_incorporation',
-            'id_number' => '12345'
         ];
 
-        expect(fn() => $this->service->create($customerData))
+        expect(fn () => $this->service->create($customerData))
             ->toThrow(BlaaizException::class, 'business_name is required when type is business');
+    });
+
+    it('requires registration_number and incorporation_country for business type in create', function () {
+        expect(fn () => $this->service->create([
+            'type' => 'business',
+            'email' => 'john@example.com',
+            'country' => 'NG',
+            'business_name' => 'Acme Corp',
+        ]))->toThrow(BlaaizException::class, 'registration_number is required when type is business');
+
+        expect(fn () => $this->service->create([
+            'type' => 'business',
+            'email' => 'john@example.com',
+            'country' => 'NG',
+            'business_name' => 'Acme Corp',
+            'registration_number' => 'RC12345',
+        ]))->toThrow(BlaaizException::class, 'incorporation_country is required when type is business');
     });
 
     it('calls makeRequest with correct parameters for create', function () {
@@ -66,7 +89,7 @@ describe('CustomerService', function () {
             'email' => 'john@example.com',
             'country' => 'NG',
             'id_type' => 'passport',
-            'id_number' => '12345'
+            'id_number' => '12345',
         ];
 
         $this->mockClient
@@ -86,8 +109,8 @@ describe('CustomerService', function () {
             'business_name' => 'Acme Corp',
             'email' => 'john@example.com',
             'country' => 'NG',
-            'id_type' => 'certificate_of_incorporation',
-            'id_number' => '12345'
+            'registration_number' => 'RC12345',
+            'incorporation_country' => 'NG',
         ];
 
         $this->mockClient
@@ -136,7 +159,7 @@ describe('CustomerService', function () {
     });
 
     it('throws exception for empty customer ID in get', function () {
-        expect(fn() => $this->service->get(''))
+        expect(fn () => $this->service->get(''))
             ->toThrow(BlaaizException::class, 'Customer ID is required');
     });
 
@@ -155,7 +178,7 @@ describe('CustomerService', function () {
     });
 
     it('throws exception for empty customer ID in update', function () {
-        expect(fn() => $this->service->update('', []))
+        expect(fn () => $this->service->update('', []))
             ->toThrow(BlaaizException::class, 'Customer ID is required');
     });
 
@@ -175,7 +198,7 @@ describe('CustomerService', function () {
     });
 
     it('throws exception for empty customer ID in addKyc', function () {
-        expect(fn() => $this->service->addKyc('', []))
+        expect(fn () => $this->service->addKyc('', []))
             ->toThrow(BlaaizException::class, 'Customer ID is required');
     });
 
@@ -195,7 +218,7 @@ describe('CustomerService', function () {
     });
 
     it('throws exception for empty customer ID in uploadFiles', function () {
-        expect(fn() => $this->service->uploadFiles('', []))
+        expect(fn () => $this->service->uploadFiles('', []))
             ->toThrow(BlaaizException::class, 'Customer ID is required');
     });
 
@@ -206,7 +229,7 @@ describe('CustomerService', function () {
         $this->mockClient
             ->shouldReceive('makeRequest')
             ->once()
-            ->with('PUT', "/api/external/customer/{$customerId}/files", $fileData)
+            ->with('POST', "/api/external/customer/{$customerId}/files", $fileData)
             ->andReturn(['data' => ['status' => 'uploaded']]);
 
         $result = $this->service->uploadFiles($customerId, $fileData);
@@ -215,24 +238,24 @@ describe('CustomerService', function () {
     });
 
     it('validates required parameters for uploadFileComplete', function () {
-        expect(fn() => $this->service->uploadFileComplete('', []))
+        expect(fn () => $this->service->uploadFileComplete('', []))
             ->toThrow(BlaaizException::class, 'Customer ID is required');
 
-        expect(fn() => $this->service->uploadFileComplete('customer-123', []))
+        expect(fn () => $this->service->uploadFileComplete('customer-123', []))
             ->toThrow(BlaaizException::class, 'File options are required');
 
-        expect(fn() => $this->service->uploadFileComplete('customer-123', []))
+        expect(fn () => $this->service->uploadFileComplete('customer-123', []))
             ->toThrow(BlaaizException::class, 'File options are required');
 
-        expect(fn() => $this->service->uploadFileComplete('customer-123', ['file_category' => 'identity']))
+        expect(fn () => $this->service->uploadFileComplete('customer-123', ['file_category' => 'identity']))
             ->toThrow(BlaaizException::class, 'File is required');
 
-        expect(fn() => $this->service->uploadFileComplete('customer-123', ['file' => 'content']))
+        expect(fn () => $this->service->uploadFileComplete('customer-123', ['file' => 'content']))
             ->toThrow(BlaaizException::class, 'file_category is required');
 
-        expect(fn() => $this->service->uploadFileComplete('customer-123', [
+        expect(fn () => $this->service->uploadFileComplete('customer-123', [
             'file' => 'content',
-            'file_category' => 'invalid'
+            'file_category' => 'invalid',
         ]))->toThrow(BlaaizException::class, 'file_category must be one of: identity, identity_back, proof_of_address, liveness_check');
     });
 
@@ -242,7 +265,7 @@ describe('CustomerService', function () {
             'file' => 'test file content',
             'file_category' => 'identity',
             'filename' => 'test.pdf',
-            'content_type' => 'application/pdf'
+            'content_type' => 'application/pdf',
         ];
 
         $this->mockClient
@@ -256,8 +279,8 @@ describe('CustomerService', function () {
                 'data' => [
                     'url' => 'https://s3.amazonaws.com/bucket/file',
                     'file_id' => 'file-123',
-                    'headers' => []
-                ]
+                    'headers' => [],
+                ],
             ]);
 
         $this->mockClient
@@ -270,7 +293,7 @@ describe('CustomerService', function () {
             ->shouldReceive('makeRequest')
             ->once()
             ->with('POST', "/api/external/customer/{$customerId}/files", [
-                'id_file' => 'file-123'
+                'id_file' => 'file-123',
             ])
             ->andReturn(['data' => ['success' => true]]);
 
@@ -296,9 +319,9 @@ describe('CustomerService', function () {
                 'data' => [
                     'data' => [
                         'url' => 'https://s3.amazonaws.com/bucket/file',
-                        'file_id' => 'file-123'
-                    ]
-                ]
+                        'file_id' => 'file-123',
+                    ],
+                ],
             ]);
 
         $this->mockClient
@@ -323,7 +346,7 @@ describe('CustomerService', function () {
 
         $fileOptions = [
             'file' => $base64String,
-            'file_category' => 'identity'
+            'file_category' => 'identity',
         ];
 
         $this->mockClient
@@ -332,8 +355,8 @@ describe('CustomerService', function () {
             ->andReturn([
                 'data' => [
                     'url' => 'https://s3.amazonaws.com/bucket/file',
-                    'file_id' => 'file-123'
-                ]
+                    'file_id' => 'file-123',
+                ],
             ]);
 
         $this->mockClient
@@ -355,10 +378,10 @@ describe('CustomerService', function () {
     it('handles data URL with content type extraction for uploadFileComplete', function () {
         $customerId = 'customer-123';
         $dataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-        
+
         $fileOptions = [
             'file' => $dataUrl,
-            'file_category' => 'identity'
+            'file_category' => 'identity',
         ];
 
         $this->mockClient
@@ -367,8 +390,8 @@ describe('CustomerService', function () {
             ->andReturn([
                 'data' => [
                     'url' => 'https://s3.amazonaws.com/bucket/file',
-                    'file_id' => 'file-123'
-                ]
+                    'file_id' => 'file-123',
+                ],
             ]);
 
         $this->mockClient
@@ -394,11 +417,11 @@ describe('CustomerService', function () {
             ->andReturn([
                 'data' => [
                     'url' => 'https://s3.amazonaws.com/bucket/file',
-                    'file_id' => 'file-123'
-                ]
+                    'file_id' => 'file-123',
+                ],
             ]);
 
-        expect(fn() => $this->service->uploadFileComplete('customer-123', [
+        expect(fn () => $this->service->uploadFileComplete('customer-123', [
             'file' => '/home/user/photo.jpg',
             'file_category' => 'identity',
         ]))->toThrow(BlaaizException::class, 'does not appear to be valid base64');
@@ -411,11 +434,11 @@ describe('CustomerService', function () {
             ->andReturn([
                 'data' => [
                     'url' => 'https://s3.amazonaws.com/bucket/file',
-                    'file_id' => 'file-123'
-                ]
+                    'file_id' => 'file-123',
+                ],
             ]);
 
-        expect(fn() => $this->service->uploadFileComplete('customer-123', [
+        expect(fn () => $this->service->uploadFileComplete('customer-123', [
             'file' => 'data:image/jpeg;base64,not valid base64!!',
             'file_category' => 'identity',
         ]))->toThrow(BlaaizException::class, 'does not appear to be valid base64');
@@ -424,10 +447,10 @@ describe('CustomerService', function () {
     it('handles URL download for uploadFileComplete', function () {
         $customerId = 'customer-123';
         $fileUrl = 'https://example.com/image.jpg';
-        
+
         $fileOptions = [
             'file' => $fileUrl,
-            'file_category' => 'identity'
+            'file_category' => 'identity',
         ];
 
         $this->mockClient
@@ -436,8 +459,8 @@ describe('CustomerService', function () {
             ->andReturn([
                 'data' => [
                     'url' => 'https://s3.amazonaws.com/bucket/file',
-                    'file_id' => 'file-123'
-                ]
+                    'file_id' => 'file-123',
+                ],
             ]);
 
         $this->mockClient
@@ -446,7 +469,7 @@ describe('CustomerService', function () {
             ->andReturn([
                 'content' => 'downloaded image content',
                 'content_type' => 'image/jpeg',
-                'filename' => 'image.jpg'
+                'filename' => 'image.jpg',
             ]);
 
         $this->mockClient
@@ -470,7 +493,7 @@ describe('CustomerService', function () {
             'identity' => 'id_file',
             'identity_back' => 'id_file_back',
             'liveness_check' => 'liveness_check_file',
-            'proof_of_address' => 'proof_of_address_file'
+            'proof_of_address' => 'proof_of_address_file',
         ];
 
         foreach ($categories as $category => $fieldName) {
@@ -483,8 +506,8 @@ describe('CustomerService', function () {
                 ->andReturn([
                     'data' => [
                         'url' => 'https://s3.amazonaws.com/bucket/file',
-                        'file_id' => 'file-123'
-                    ]
+                        'file_id' => 'file-123',
+                    ],
                 ]);
 
             $mockClient
@@ -495,8 +518,8 @@ describe('CustomerService', function () {
             $mockClient
                 ->shouldReceive('makeRequest')
                 ->once()
-                ->with('POST', "/api/external/customer/customer-123/files", [
-                    $fieldName => 'file-123'
+                ->with('POST', '/api/external/customer/customer-123/files', [
+                    $fieldName => 'file-123',
                 ])
                 ->andReturn(['data' => ['success' => true]]);
 
@@ -516,7 +539,7 @@ describe('CustomerService', function () {
             ->once()
             ->andReturn(['data' => ['invalid' => 'response']]);
 
-        expect(fn() => $this->service->uploadFileComplete('customer-123', [
+        expect(fn () => $this->service->uploadFileComplete('customer-123', [
             'file' => 'content',
             'file_category' => 'identity',
             'content_type' => 'application/pdf',
@@ -530,14 +553,14 @@ describe('CustomerService', function () {
             ->andReturn([
                 'data' => [
                     'url' => 'https://s3.amazonaws.com/bucket/file',
-                    'file_id' => 'file-123'
-                ]
+                    'file_id' => 'file-123',
+                ],
             ]);
 
         // Valid base64 that decodes to bytes with no recognizable magic bytes
-        expect(fn() => $this->service->uploadFileComplete('customer-123', [
+        expect(fn () => $this->service->uploadFileComplete('customer-123', [
             'file' => 'cmFuZG9tX2NvbnRlbnRfeHl6',
-            'file_category' => 'identity'
+            'file_category' => 'identity',
         ]))->toThrow(BlaaizException::class, 'Could not determine file content type');
     });
 
@@ -555,8 +578,8 @@ describe('CustomerService', function () {
             ->andReturn([
                 'data' => [
                     'url' => 'https://s3.amazonaws.com/bucket/file',
-                    'file_id' => 'file-123'
-                ]
+                    'file_id' => 'file-123',
+                ],
             ]);
 
         $this->mockClient
@@ -581,7 +604,7 @@ describe('CustomerService', function () {
             ->once()
             ->andThrow(new BlaaizException('API Error', 400, 'API_ERROR'));
 
-        expect(fn() => $this->service->uploadFileComplete('customer-123', [
+        expect(fn () => $this->service->uploadFileComplete('customer-123', [
             'file' => 'content',
             'file_category' => 'identity',
             'content_type' => 'application/pdf',
@@ -589,7 +612,7 @@ describe('CustomerService', function () {
     });
 
     it('throws exception for empty customer ID in listBeneficiaries', function () {
-        expect(fn() => $this->service->listBeneficiaries(''))
+        expect(fn () => $this->service->listBeneficiaries(''))
             ->toThrow(BlaaizException::class, 'Customer ID is required');
     });
 
@@ -608,12 +631,12 @@ describe('CustomerService', function () {
     });
 
     it('throws exception for empty customer ID in getBeneficiary', function () {
-        expect(fn() => $this->service->getBeneficiary('', 'beneficiary-123'))
+        expect(fn () => $this->service->getBeneficiary('', 'beneficiary-123'))
             ->toThrow(BlaaizException::class, 'Customer ID is required');
     });
 
     it('throws exception for empty beneficiary ID in getBeneficiary', function () {
-        expect(fn() => $this->service->getBeneficiary('customer-123', ''))
+        expect(fn () => $this->service->getBeneficiary('customer-123', ''))
             ->toThrow(BlaaizException::class, 'Beneficiary ID is required');
     });
 
@@ -630,5 +653,182 @@ describe('CustomerService', function () {
         $result = $this->service->getBeneficiary($customerId, $beneficiaryId);
 
         expect($result)->toBe(['data' => ['id' => $beneficiaryId, 'name' => 'John Doe']]);
+    });
+
+    it('calls makeRequest for submit', function () {
+        expect(fn () => $this->service->submit(''))
+            ->toThrow(BlaaizException::class, 'Customer ID is required');
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/customer/customer-123/submit')
+            ->andReturn(['data' => ['status' => 'submitted']]);
+
+        $result = $this->service->submit('customer-123');
+        expect($result)->toBe(['data' => ['status' => 'submitted']]);
+    });
+
+    it('validates owners for upgradeKybScope', function () {
+        expect(fn () => $this->service->upgradeKybScope('customer-123', []))
+            ->toThrow(BlaaizException::class, 'owners is required');
+    });
+
+    it('calls makeRequest for upgradeKybScope', function () {
+        $upgradeData = ['owners' => [['name' => 'Jane', 'ownership_percentage' => 100]]];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/customer/customer-123/upgrade-kyb-scope', $upgradeData)
+            ->andReturn(['data' => ['status' => 'upgraded']]);
+
+        $result = $this->service->upgradeKybScope('customer-123', $upgradeData);
+        expect($result)->toBe(['data' => ['status' => 'upgraded']]);
+    });
+
+    it('validates ids for deleteOwner', function () {
+        expect(fn () => $this->service->deleteOwner('customer-123', ''))
+            ->toThrow(BlaaizException::class, 'Owner ID is required');
+    });
+
+    it('calls makeRequest for deleteOwner', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('DELETE', '/api/external/customer/customer-123/owner/owner-1')
+            ->andReturn(['message' => 'Owner deleted']);
+
+        $result = $this->service->deleteOwner('customer-123', 'owner-1');
+        expect($result)->toBe(['message' => 'Owner deleted']);
+    });
+
+    it('validates file_category for getOwnerFilePresignedUrl', function () {
+        expect(fn () => $this->service->getOwnerFilePresignedUrl('customer-123', 'owner-1', []))
+            ->toThrow(BlaaizException::class, 'file_category is required');
+    });
+
+    it('calls makeRequest for getOwnerFilePresignedUrl', function () {
+        $presignedData = ['file_category' => 'id_document_front'];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/customer/customer-123/owner/owner-1/file/presigned-url', $presignedData)
+            ->andReturn(['file_id' => 'file-1', 'url' => 'https://s3']);
+
+        $result = $this->service->getOwnerFilePresignedUrl('customer-123', 'owner-1', $presignedData);
+        expect($result)->toBe(['file_id' => 'file-1', 'url' => 'https://s3']);
+    });
+
+    it('validates id_document_front for uploadOwnerFiles', function () {
+        expect(fn () => $this->service->uploadOwnerFiles('customer-123', 'owner-1', []))
+            ->toThrow(BlaaizException::class, 'id_document_front is required');
+    });
+
+    it('calls makeRequest for uploadOwnerFiles', function () {
+        $fileData = ['id_document_front' => 'file-1'];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/customer/customer-123/owner/owner-1/files', $fileData)
+            ->andReturn(['data' => ['status' => 'uploaded']]);
+
+        $result = $this->service->uploadOwnerFiles('customer-123', 'owner-1', $fileData);
+        expect($result)->toBe(['data' => ['status' => 'uploaded']]);
+    });
+
+    it('calls makeRequest for listDocuments', function () {
+        expect(fn () => $this->service->listDocuments(''))
+            ->toThrow(BlaaizException::class, 'Customer ID is required');
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', '/api/external/customer/customer-123/document')
+            ->andReturn(['data' => []]);
+
+        $result = $this->service->listDocuments('customer-123');
+        expect($result)->toBe(['data' => []]);
+    });
+
+    it('validates document id for getDocument', function () {
+        expect(fn () => $this->service->getDocument('customer-123', ''))
+            ->toThrow(BlaaizException::class, 'Document ID is required');
+    });
+
+    it('calls makeRequest for getDocument', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', '/api/external/customer/customer-123/document/doc-1')
+            ->andReturn(['data' => ['id' => 'doc-1']]);
+
+        $result = $this->service->getDocument('customer-123', 'doc-1');
+        expect($result)->toBe(['data' => ['id' => 'doc-1']]);
+    });
+
+    it('calls makeRequest for getDocumentPresignedUrl', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/customer/customer-123/document/presigned-url')
+            ->andReturn(['file_id' => 'file-1', 'url' => 'https://s3']);
+
+        $result = $this->service->getDocumentPresignedUrl('customer-123');
+        expect($result)->toBe(['file_id' => 'file-1', 'url' => 'https://s3']);
+    });
+
+    it('validates required fields for createDocument', function () {
+        expect(fn () => $this->service->createDocument('customer-123', ['name' => 'Doc', 'file_id' => 'file-1']))
+            ->toThrow(BlaaizException::class, 'type is required');
+    });
+
+    it('calls makeRequest for createDocument', function () {
+        $documentData = ['type' => 'PROOF_OF_ADDRESS', 'name' => 'Utility Bill', 'file_id' => 'file-1'];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/customer/customer-123/document', $documentData)
+            ->andReturn(['data' => ['id' => 'doc-1']]);
+
+        $result = $this->service->createDocument('customer-123', $documentData);
+        expect($result)->toBe(['data' => ['id' => 'doc-1']]);
+    });
+
+    it('validates document id for updateDocument', function () {
+        expect(fn () => $this->service->updateDocument('customer-123', '', ['name' => 'x']))
+            ->toThrow(BlaaizException::class, 'Document ID is required');
+    });
+
+    it('calls makeRequest for updateDocument', function () {
+        $documentData = ['name' => 'Renamed'];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('PUT', '/api/external/customer/customer-123/document/doc-1', $documentData)
+            ->andReturn(['data' => ['id' => 'doc-1', 'name' => 'Renamed']]);
+
+        $result = $this->service->updateDocument('customer-123', 'doc-1', $documentData);
+        expect($result)->toBe(['data' => ['id' => 'doc-1', 'name' => 'Renamed']]);
+    });
+
+    it('validates document id for deleteDocument', function () {
+        expect(fn () => $this->service->deleteDocument('customer-123', ''))
+            ->toThrow(BlaaizException::class, 'Document ID is required');
+    });
+
+    it('calls makeRequest for deleteDocument', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('DELETE', '/api/external/customer/customer-123/document/doc-1')
+            ->andReturn(['message' => 'Document deleted']);
+
+        $result = $this->service->deleteDocument('customer-123', 'doc-1');
+        expect($result)->toBe(['message' => 'Document deleted']);
     });
 });

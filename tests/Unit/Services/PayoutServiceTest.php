@@ -1,8 +1,8 @@
 <?php
 
-use Blaaiz\LaravelSdk\Services\PayoutService;
-use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
 use Blaaiz\LaravelSdk\BlaaizClient;
+use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
+use Blaaiz\LaravelSdk\Services\PayoutService;
 use Mockery;
 
 describe('PayoutService', function () {
@@ -16,34 +16,34 @@ describe('PayoutService', function () {
     });
 
     it('validates required fields for initiate', function () {
-        expect(fn() => $this->service->initiate([]))
+        expect(fn () => $this->service->initiate([]))
             ->toThrow(BlaaizException::class, 'wallet_id is required');
 
-        expect(fn() => $this->service->initiate(['wallet_id' => 'w1']))
+        expect(fn () => $this->service->initiate(['wallet_id' => 'w1']))
             ->toThrow(BlaaizException::class, 'customer_id is required');
 
-        expect(fn() => $this->service->initiate(['wallet_id' => 'w1', 'customer_id' => 'c1']))
+        expect(fn () => $this->service->initiate(['wallet_id' => 'w1', 'customer_id' => 'c1']))
             ->toThrow(BlaaizException::class, 'method is required');
 
-        expect(fn() => $this->service->initiate([
-            'wallet_id' => 'w1',
-            'customer_id' => 'c1',
-            'method' => 'bank_transfer'
-        ]))->toThrow(BlaaizException::class, 'from_currency_id is required');
-
-        expect(fn() => $this->service->initiate([
+        expect(fn () => $this->service->initiate([
             'wallet_id' => 'w1',
             'customer_id' => 'c1',
             'method' => 'bank_transfer',
-            'from_currency_id' => 'USD'
-        ]))->toThrow(BlaaizException::class, 'to_currency_id is required');
+        ]))->toThrow(BlaaizException::class, 'from_currency_id is required');
 
-        expect(fn() => $this->service->initiate([
+        expect(fn () => $this->service->initiate([
             'wallet_id' => 'w1',
             'customer_id' => 'c1',
             'method' => 'bank_transfer',
             'from_currency_id' => 'USD',
-            'to_currency_id' => 'NGN'
+        ]))->toThrow(BlaaizException::class, 'to_currency_id is required');
+
+        expect(fn () => $this->service->initiate([
+            'wallet_id' => 'w1',
+            'customer_id' => 'c1',
+            'method' => 'bank_transfer',
+            'from_currency_id' => 'USD',
+            'to_currency_id' => 'NGN',
         ]))->toThrow(BlaaizException::class, 'Either from_amount or to_amount is required');
     });
 
@@ -54,13 +54,13 @@ describe('PayoutService', function () {
             'method' => 'bank_transfer',
             'from_amount' => 100,
             'from_currency_id' => 'USD',
-            'to_currency_id' => 'NGN'
+            'to_currency_id' => 'NGN',
         ];
 
-        expect(fn() => $this->service->initiate($payoutData))
+        expect(fn () => $this->service->initiate($payoutData))
             ->toThrow(BlaaizException::class, 'bank_id is required');
 
-        expect(fn() => $this->service->initiate(array_merge($payoutData, ['bank_id' => 'bank1'])))
+        expect(fn () => $this->service->initiate(array_merge($payoutData, ['bank_id' => 'bank1'])))
             ->toThrow(BlaaizException::class, 'account_number is required');
     });
 
@@ -71,10 +71,10 @@ describe('PayoutService', function () {
             'method' => 'bank_transfer',
             'from_amount' => 100,
             'from_currency_id' => 'USD',
-            'to_currency_id' => 'GBP'
+            'to_currency_id' => 'GBP',
         ];
 
-        expect(fn() => $this->service->initiate($payoutData))
+        expect(fn () => $this->service->initiate($payoutData))
             ->toThrow(BlaaizException::class, 'sort_code is required');
     });
 
@@ -85,10 +85,10 @@ describe('PayoutService', function () {
             'method' => 'bank_transfer',
             'from_amount' => 100,
             'from_currency_id' => 'USD',
-            'to_currency_id' => 'EUR'
+            'to_currency_id' => 'EUR',
         ];
 
-        expect(fn() => $this->service->initiate($payoutData))
+        expect(fn () => $this->service->initiate($payoutData))
             ->toThrow(BlaaizException::class, 'iban is required');
     });
 
@@ -99,18 +99,18 @@ describe('PayoutService', function () {
             'method' => 'interac',
             'from_amount' => 100,
             'from_currency_id' => 'USD',
-            'to_currency_id' => 'CAD'
+            'to_currency_id' => 'CAD',
         ];
 
-        expect(fn() => $this->service->initiate($basePayoutData))
+        expect(fn () => $this->service->initiate($basePayoutData))
             ->toThrow(BlaaizException::class, 'email is required');
 
-        expect(fn() => $this->service->initiate(array_merge($basePayoutData, ['email' => 'test@example.com'])))
+        expect(fn () => $this->service->initiate(array_merge($basePayoutData, ['email' => 'test@example.com'])))
             ->toThrow(BlaaizException::class, 'interac_first_name is required');
 
-        expect(fn() => $this->service->initiate(array_merge($basePayoutData, [
+        expect(fn () => $this->service->initiate(array_merge($basePayoutData, [
             'email' => 'test@example.com',
-            'interac_first_name' => 'John'
+            'interac_first_name' => 'John',
         ])))->toThrow(BlaaizException::class, 'interac_last_name is required');
     });
 
@@ -121,10 +121,10 @@ describe('PayoutService', function () {
             'method' => 'crypto',
             'from_amount' => 100,
             'from_currency_id' => 'USD',
-            'to_currency_id' => 'USDT'
+            'to_currency_id' => 'USDT',
         ];
 
-        expect(fn() => $this->service->initiate($basePayoutData))
+        expect(fn () => $this->service->initiate($basePayoutData))
             ->toThrow(BlaaizException::class, 'wallet_address is required');
     });
 
@@ -135,10 +135,10 @@ describe('PayoutService', function () {
             'method' => 'ach',
             'from_amount' => 100,
             'from_currency_id' => 'USD',
-            'to_currency_id' => 'USD'
+            'to_currency_id' => 'USD',
         ];
 
-        expect(fn() => $this->service->initiate($basePayoutData))
+        expect(fn () => $this->service->initiate($basePayoutData))
             ->toThrow(BlaaizException::class, 'type is required');
     });
 
@@ -151,7 +151,7 @@ describe('PayoutService', function () {
             'from_currency_id' => 'USD',
             'to_currency_id' => 'NGN',
             'bank_id' => 'bank1',
-            'account_number' => '1234567890'
+            'account_number' => '1234567890',
         ];
 
         $this->mockClient
@@ -175,7 +175,7 @@ describe('PayoutService', function () {
             'to_currency_id' => 'CAD',
             'email' => 'test@example.com',
             'interac_first_name' => 'John',
-            'interac_last_name' => 'Doe'
+            'interac_last_name' => 'Doe',
         ];
 
         $this->mockClient
@@ -198,7 +198,7 @@ describe('PayoutService', function () {
             'from_currency_id' => 'USD',
             'to_currency_id' => 'NGN',
             'bank_id' => 'bank1',
-            'account_number' => '1234567890'
+            'account_number' => '1234567890',
         ];
 
         $this->mockClient
@@ -210,5 +210,29 @@ describe('PayoutService', function () {
         $result = $this->service->initiate($payoutData);
 
         expect($result)->toBe(['data' => ['id' => 'payout-123']]);
+    });
+
+    it('forwards merchant_reference and returns it on the transaction', function () {
+        $payoutData = [
+            'wallet_id' => 'w1',
+            'customer_id' => 'c1',
+            'method' => 'bank_transfer',
+            'from_amount' => 100,
+            'from_currency_id' => 'USD',
+            'to_currency_id' => 'NGN',
+            'bank_id' => 'bank1',
+            'account_number' => '1234567890',
+            'merchant_reference' => 'order-123',
+        ];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/payout', $payoutData)
+            ->andReturn(['data' => ['transaction' => ['id' => 'payout-123', 'merchant_reference' => 'order-123']]]);
+
+        $result = $this->service->initiate($payoutData);
+
+        expect($result)->toBe(['data' => ['transaction' => ['id' => 'payout-123', 'merchant_reference' => 'order-123']]]);
     });
 });
