@@ -8,19 +8,22 @@ class CustomerService extends BaseService
 {
     public function create(array $customerData): array
     {
-        $this->validateRequiredFields($customerData, [
-            'type', 'email', 'country', 'id_type', 'id_number'
-        ]);
+        $this->validateRequiredFields($customerData, ['type', 'email', 'country']);
 
         if ($customerData['type'] === 'individual') {
-            if (empty($customerData['first_name'])) {
-                throw new BlaaizException('first_name is required when type is individual');
+            // Personal-ID fields identify an individual; they are prohibited for businesses.
+            foreach (['first_name', 'last_name', 'id_type', 'id_number'] as $field) {
+                if (empty($customerData[$field])) {
+                    throw new BlaaizException("{$field} is required when type is individual");
+                }
             }
-            if (empty($customerData['last_name'])) {
-                throw new BlaaizException('last_name is required when type is individual');
+        } elseif ($customerData['type'] === 'business') {
+            // Businesses identify via registration_number + incorporation_country, not personal ID.
+            foreach (['business_name', 'registration_number', 'incorporation_country'] as $field) {
+                if (empty($customerData[$field])) {
+                    throw new BlaaizException("{$field} is required when type is business");
+                }
             }
-        } elseif ($customerData['type'] === 'business' && empty($customerData['business_name'])) {
-            throw new BlaaizException('business_name is required when type is business');
         }
 
         return $this->client->makeRequest('POST', '/api/external/customer', $customerData);
@@ -76,7 +79,7 @@ class CustomerService extends BaseService
             throw new BlaaizException('Customer ID is required');
         }
 
-        return $this->client->makeRequest('PUT', "/api/external/customer/{$customerId}/files", $fileData);
+        return $this->client->makeRequest('POST', "/api/external/customer/{$customerId}/files", $fileData);
     }
 
     public function uploadFileComplete(string $customerId, array $fileOptions): array
@@ -94,15 +97,15 @@ class CustomerService extends BaseService
         $filename = $fileOptions['filename'] ?? null;
         $contentType = $fileOptions['content_type'] ?? null;
 
-        if (!$file) {
+        if (! $file) {
             throw new BlaaizException('File is required');
         }
 
-        if (!$fileCategory) {
+        if (! $fileCategory) {
             throw new BlaaizException('file_category is required');
         }
 
-        if (!in_array($fileCategory, ['identity', 'identity_back', 'proof_of_address', 'liveness_check'])) {
+        if (! in_array($fileCategory, ['identity', 'identity_back', 'proof_of_address', 'liveness_check'])) {
             throw new BlaaizException('file_category must be one of: identity, identity_back, proof_of_address, liveness_check');
         }
 
@@ -122,19 +125,19 @@ class CustomerService extends BaseService
                 $presignedUrl = $presignedResponse['data']['data']['url'];
                 $fileId = $presignedResponse['data']['data']['file_id'];
             } else {
-                throw new BlaaizException("Invalid presigned URL response structure. Expected 'url' and 'file_id' keys. Got: " . json_encode($presignedResponse));
+                throw new BlaaizException("Invalid presigned URL response structure. Expected 'url' and 'file_id' keys. Got: ".json_encode($presignedResponse));
             }
 
             $fileBuffer = $this->processFileInput($file, $contentType, $filename);
 
             // Auto-detect content type if not provided
-            if (!$fileBuffer['content_type']) {
+            if (! $fileBuffer['content_type']) {
                 $fileBuffer['content_type'] = $this->detectContentTypeFromBytes($fileBuffer['content']);
             }
-            if (!$fileBuffer['content_type'] && $fileBuffer['filename']) {
+            if (! $fileBuffer['content_type'] && $fileBuffer['filename']) {
                 $fileBuffer['content_type'] = $this->getContentTypeFromFilename($fileBuffer['filename']);
             }
-            if (!$fileBuffer['content_type']) {
+            if (! $fileBuffer['content_type']) {
                 throw new BlaaizException(
                     'Could not determine file content type. Please provide a content_type (e.g., "image/jpeg", "image/png", "application/pdf") in fileOptions.'
                 );
@@ -150,7 +153,7 @@ class CustomerService extends BaseService
             ];
 
             $fileFieldName = $fileFieldMapping[$fileCategory] ?? null;
-            if (!$fileFieldName) {
+            if (! $fileFieldName) {
                 throw new BlaaizException("Unknown file category: {$fileCategory}");
             }
 
@@ -192,6 +195,139 @@ class CustomerService extends BaseService
         }
 
         return $this->client->makeRequest('GET', "/api/external/customer/{$customerId}/beneficiary/{$beneficiaryId}");
+    }
+
+    public function submit(string $customerId): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        return $this->client->makeRequest('POST', "/api/external/customer/{$customerId}/submit");
+    }
+
+    public function upgradeKybScope(string $customerId, array $upgradeData): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        if (empty($upgradeData['owners']) || ! is_array($upgradeData['owners'])) {
+            throw new BlaaizException('owners is required');
+        }
+
+        return $this->client->makeRequest('POST', "/api/external/customer/{$customerId}/upgrade-kyb-scope", $upgradeData);
+    }
+
+    public function deleteOwner(string $customerId, string $ownerId): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        if (empty($ownerId)) {
+            throw new BlaaizException('Owner ID is required');
+        }
+
+        return $this->client->makeRequest('DELETE', "/api/external/customer/{$customerId}/owner/{$ownerId}");
+    }
+
+    public function getOwnerFilePresignedUrl(string $customerId, string $ownerId, array $presignedData): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        if (empty($ownerId)) {
+            throw new BlaaizException('Owner ID is required');
+        }
+
+        $this->validateRequiredFields($presignedData, ['file_category']);
+
+        return $this->client->makeRequest('POST', "/api/external/customer/{$customerId}/owner/{$ownerId}/file/presigned-url", $presignedData);
+    }
+
+    public function uploadOwnerFiles(string $customerId, string $ownerId, array $fileData): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        if (empty($ownerId)) {
+            throw new BlaaizException('Owner ID is required');
+        }
+
+        $this->validateRequiredFields($fileData, ['id_document_front']);
+
+        return $this->client->makeRequest('POST', "/api/external/customer/{$customerId}/owner/{$ownerId}/files", $fileData);
+    }
+
+    public function listDocuments(string $customerId): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        return $this->client->makeRequest('GET', "/api/external/customer/{$customerId}/document");
+    }
+
+    public function getDocument(string $customerId, string $documentId): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        if (empty($documentId)) {
+            throw new BlaaizException('Document ID is required');
+        }
+
+        return $this->client->makeRequest('GET', "/api/external/customer/{$customerId}/document/{$documentId}");
+    }
+
+    public function getDocumentPresignedUrl(string $customerId): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        return $this->client->makeRequest('POST', "/api/external/customer/{$customerId}/document/presigned-url");
+    }
+
+    public function createDocument(string $customerId, array $documentData): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        $this->validateRequiredFields($documentData, ['type', 'name', 'file_id']);
+
+        return $this->client->makeRequest('POST', "/api/external/customer/{$customerId}/document", $documentData);
+    }
+
+    public function updateDocument(string $customerId, string $documentId, array $documentData): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        if (empty($documentId)) {
+            throw new BlaaizException('Document ID is required');
+        }
+
+        return $this->client->makeRequest('PUT', "/api/external/customer/{$customerId}/document/{$documentId}", $documentData);
+    }
+
+    public function deleteDocument(string $customerId, string $documentId): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        if (empty($documentId)) {
+            throw new BlaaizException('Document ID is required');
+        }
+
+        return $this->client->makeRequest('DELETE', "/api/external/customer/{$customerId}/document/{$documentId}");
     }
 
     private function detectContentTypeFromBytes(string $content): ?string
@@ -275,12 +411,12 @@ class CustomerService extends BaseService
                 $content = base64_decode($base64Part, true);
                 if ($content === false) {
                     throw new BlaaizException(
-                        'The base64 portion of the data URL does not appear to be valid base64. ' .
+                        'The base64 portion of the data URL does not appear to be valid base64. '.
                         'Ensure the string after the comma contains only valid base64 characters.'
                     );
                 }
 
-                if (!$contentType && preg_match('/data:([^;]+)/', $file, $matches)) {
+                if (! $contentType && preg_match('/data:([^;]+)/', $file, $matches)) {
                     $contentType = $matches[1];
                 }
 
@@ -294,11 +430,11 @@ class CustomerService extends BaseService
             if (str_starts_with($file, 'http://') || str_starts_with($file, 'https://')) {
                 $downloadResult = $this->client->downloadFile($file);
 
-                if (!$contentType && $downloadResult['content_type']) {
+                if (! $contentType && $downloadResult['content_type']) {
                     $contentType = $downloadResult['content_type'];
                 }
 
-                if (!$filename && $downloadResult['filename']) {
+                if (! $filename && $downloadResult['filename']) {
                     $filename = $downloadResult['filename'];
                 }
 
@@ -312,7 +448,7 @@ class CustomerService extends BaseService
             $content = base64_decode($file, true);
             if ($content === false) {
                 throw new BlaaizException(
-                    'The file string does not appear to be valid base64. ' .
+                    'The file string does not appear to be valid base64. '.
                     'If you meant to pass a file path or URL, use the appropriate format instead.'
                 );
             }
