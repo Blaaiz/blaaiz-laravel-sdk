@@ -9,7 +9,6 @@ use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
  * These tests require valid credentials and should be run against a test environment.
  * Set BLAAIZ_CLIENT_ID + BLAAIZ_CLIENT_SECRET (OAuth) or BLAAIZ_API_KEY (legacy) to run.
  */
-
 function getBlaaizInstance(): ?Blaaiz
 {
     $baseURL = env('BLAAIZ_API_URL', 'https://api-dev.blaaiz.com');
@@ -26,6 +25,7 @@ function getBlaaizInstance(): ?Blaaiz
         if ($scope) {
             $options['oauth_scope'] = $scope;
         }
+
         return new Blaaiz($options);
     }
 
@@ -40,7 +40,7 @@ function getBlaaizInstance(): ?Blaaiz
 function skipOnScopeError(BlaaizException $e): void
 {
     if (str_contains($e->getMessage(), 'scope') || str_contains($e->getMessage(), 'Scope')) {
-        test()->markTestSkipped('OAuth credentials lack required scope: ' . $e->getMessage());
+        test()->markTestSkipped('OAuth credentials lack required scope: '.$e->getMessage());
     }
 
     throw $e;
@@ -48,20 +48,20 @@ function skipOnScopeError(BlaaizException $e): void
 
 it('should connect to API', function () {
     $blaaiz = getBlaaizInstance();
-    if (!$blaaiz) {
+    if (! $blaaiz) {
         $this->markTestSkipped('No Blaaiz credentials set');
     }
-    
+
     $isConnected = $blaaiz->testConnection();
     expect($isConnected)->toBe(true);
 });
 
 it('should list currencies', function () {
     $blaaiz = getBlaaizInstance();
-    if (!$blaaiz) {
+    if (! $blaaiz) {
         $this->markTestSkipped('No Blaaiz credentials set');
     }
-    
+
     try {
         $currencies = $blaaiz->currencies->list();
         expect($currencies)->toHaveKey('data');
@@ -77,10 +77,10 @@ it('should list currencies', function () {
 
 it('should list wallets', function () {
     $blaaiz = getBlaaizInstance();
-    if (!$blaaiz) {
+    if (! $blaaiz) {
         $this->markTestSkipped('No Blaaiz credentials set');
     }
-    
+
     $wallets = $blaaiz->wallets->list();
     expect($wallets)->toHaveKey('data');
     expect($wallets['data'])->toBeArray();
@@ -88,7 +88,7 @@ it('should list wallets', function () {
 
 it('should create and retrieve customer', function () {
     $blaaiz = getBlaaizInstance();
-    if (!$blaaiz) {
+    if (! $blaaiz) {
         $this->markTestSkipped('No Blaaiz credentials set');
     }
 
@@ -96,10 +96,10 @@ it('should create and retrieve customer', function () {
         'first_name' => 'John',
         'last_name' => 'Doe',
         'type' => 'individual',
-        'email' => 'john.doe.' . bin2hex(random_bytes(4)) . '@example.com',
+        'email' => 'john.doe.'.bin2hex(random_bytes(4)).'@example.com',
         'country' => 'NG',
         'id_type' => 'passport',
-        'id_number' => 'A' . strtoupper(bin2hex(random_bytes(4)))
+        'id_number' => 'A'.strtoupper(bin2hex(random_bytes(4))),
     ];
 
     $customer = $blaaiz->customers->create($customerData);
@@ -111,8 +111,8 @@ it('should create and retrieve customer', function () {
     $retrievedCustomer = $blaaiz->customers->get($customerId);
 
     // Handle different response structures
-    $actualCustomerId = isset($retrievedCustomer['data']['data']) 
-        ? $retrievedCustomer['data']['data']['id'] 
+    $actualCustomerId = isset($retrievedCustomer['data']['data'])
+        ? $retrievedCustomer['data']['data']['id']
         : $retrievedCustomer['data']['id'];
 
     expect($actualCustomerId)->toBe($customerId);
@@ -120,7 +120,7 @@ it('should create and retrieve customer', function () {
 
 it('should upload a file', function () {
     $blaaiz = getBlaaizInstance();
-    if (!$blaaiz) {
+    if (! $blaaiz) {
         $this->markTestSkipped('No Blaaiz credentials set');
     }
 
@@ -128,11 +128,11 @@ it('should upload a file', function () {
     $customerData = [
         'first_name' => 'FileTest',
         'last_name' => 'User',
-        'email' => 'filetest.' . bin2hex(random_bytes(4)) . '@example.com',
+        'email' => 'filetest.'.bin2hex(random_bytes(4)).'@example.com',
         'type' => 'individual',
         'country' => 'NG',
         'id_type' => 'passport',
-        'id_number' => 'A' . strtoupper(bin2hex(random_bytes(4)))
+        'id_number' => 'A'.strtoupper(bin2hex(random_bytes(4))),
     ];
 
     $customer = $blaaiz->customers->create($customerData);
@@ -142,7 +142,7 @@ it('should upload a file', function () {
         'file' => 'Test passport document content',
         'file_category' => 'identity',
         'filename' => 'test_passport.pdf',
-        'content_type' => 'application/pdf'
+        'content_type' => 'application/pdf',
     ];
 
     $uploadResult = $blaaiz->customers->uploadFileComplete($testCustomerId, $fileOptions);
@@ -156,14 +156,14 @@ it('should upload a file', function () {
 
 it('should verify webhook signature', function () {
     $blaaiz = getBlaaizInstance();
-    if (!$blaaiz) {
+    if (! $blaaiz) {
         $this->markTestSkipped('No Blaaiz credentials set');
     }
 
     $payload = '{"transaction_id":"test-123","status":"completed"}';
     $secret = 'test-webhook-secret';
     $timestamp = '1234567890';
-    $signed = $timestamp . '.' . $payload;
+    $signed = $timestamp.'.'.$payload;
     $validSignature = hash_hmac('sha256', $signed, $secret);
 
     $isValid = $blaaiz->webhooks->verifySignature($payload, $validSignature, $timestamp, $secret);
@@ -175,14 +175,14 @@ it('should verify webhook signature', function () {
 
 it('should construct webhook event', function () {
     $blaaiz = getBlaaizInstance();
-    if (!$blaaiz) {
+    if (! $blaaiz) {
         $this->markTestSkipped('No Blaaiz credentials set');
     }
 
     $payload = '{"transaction_id":"test-123","status":"completed"}';
     $secret = 'test-webhook-secret';
     $timestamp = '1234567890';
-    $signed = $timestamp . '.' . $payload;
+    $signed = $timestamp.'.'.$payload;
     $validSignature = hash_hmac('sha256', $signed, $secret);
 
     $event = $blaaiz->webhooks->constructEvent($payload, $validSignature, $timestamp, $secret);
@@ -195,23 +195,23 @@ it('should construct webhook event', function () {
 it('should handle invalid API key gracefully', function () {
     $invalidBlaaiz = new Blaaiz(['api_key' => 'invalid-key']);
 
-    expect(fn() => $invalidBlaaiz->currencies->list())
+    expect(fn () => $invalidBlaaiz->currencies->list())
         ->toThrow(BlaaizException::class);
 });
 
 it('should handle invalid customer creation', function () {
     $blaaiz = getBlaaizInstance();
-    if (!$blaaiz) {
+    if (! $blaaiz) {
         $this->markTestSkipped('No Blaaiz credentials set');
     }
 
-    expect(fn() => $blaaiz->customers->create([])) // Missing required fields
+    expect(fn () => $blaaiz->customers->create([])) // Missing required fields
         ->toThrow(BlaaizException::class);
 });
 
 it('should list rates', function () {
     $blaaiz = getBlaaizInstance();
-    if (!$blaaiz) {
+    if (! $blaaiz) {
         $this->markTestSkipped('No Blaaiz credentials set');
     }
 
@@ -224,7 +224,7 @@ it('should list rates', function () {
 
 it('should list rates with search term', function () {
     $blaaiz = getBlaaizInstance();
-    if (!$blaaiz) {
+    if (! $blaaiz) {
         $this->markTestSkipped('No Blaaiz credentials set');
     }
 
@@ -235,14 +235,14 @@ it('should list rates with search term', function () {
 });
 
 it('should validate swap requires all fields', function () {
-    expect(fn() => (new Blaaiz(['api_key' => 'test']))->swaps->swap([]))
+    expect(fn () => (new Blaaiz(['api_key' => 'test']))->swaps->initiate([]))
         ->toThrow(BlaaizException::class, 'from_business_wallet_id is required');
 
-    expect(fn() => (new Blaaiz(['api_key' => 'test']))->swaps->swap([
+    expect(fn () => (new Blaaiz(['api_key' => 'test']))->swaps->initiate([
         'from_business_wallet_id' => 'w1',
     ]))->toThrow(BlaaizException::class, 'to_business_wallet_id is required');
 
-    expect(fn() => (new Blaaiz(['api_key' => 'test']))->swaps->swap([
+    expect(fn () => (new Blaaiz(['api_key' => 'test']))->swaps->initiate([
         'from_business_wallet_id' => 'w1',
         'to_business_wallet_id' => 'w2',
     ]))->toThrow(BlaaizException::class, 'amount is required');
@@ -251,7 +251,7 @@ it('should validate swap requires all fields', function () {
 it('should authenticate with OAuth and list rates', function () {
     $clientId = env('BLAAIZ_CLIENT_ID');
     $clientSecret = env('BLAAIZ_CLIENT_SECRET');
-    if (!$clientId || !$clientSecret) {
+    if (! $clientId || ! $clientSecret) {
         $this->markTestSkipped('BLAAIZ_CLIENT_ID and BLAAIZ_CLIENT_SECRET not set');
     }
 
@@ -280,6 +280,6 @@ it('should fail OAuth with invalid credentials', function () {
         'base_url' => 'https://api-dev.blaaiz.com',
     ]);
 
-    expect(fn() => $blaaiz->rates->list())
+    expect(fn () => $blaaiz->rates->list())
         ->toThrow(BlaaizException::class);
 });
