@@ -14,4 +14,12 @@ class SwapService extends BaseService
 
         return $this->client->makeRequest('POST', '/api/external/swap', $swapData);
     }
+
+    /**
+     * @deprecated Use initiate(). Kept for backward compatibility; it will be removed in a future major version.
+     */
+    public function swap(array $swapData): array
+    {
+        return $this->initiate($swapData);
+    }
 }

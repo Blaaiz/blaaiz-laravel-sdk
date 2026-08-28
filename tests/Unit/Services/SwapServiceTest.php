@@ -63,4 +63,18 @@ describe('SwapService', function () {
         $result = $this->service->initiate($swapData);
         expect($result)->toBe(['data' => ['message' => 'Money swap successful!']]);
     });
+    it('keeps swap() as a deprecated alias of initiate()', function () {
+        $swapData = ['from_business_wallet_id' => 'a', 'to_business_wallet_id' => 'b', 'amount' => 10];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/swap', $swapData)
+            ->andReturn(['data' => ['status' => 'SUCCESSFUL']]);
+
+        $result = $this->service->swap($swapData);
+
+        expect($result)->toBe(['data' => ['status' => 'SUCCESSFUL']]);
+    });
+
 });
