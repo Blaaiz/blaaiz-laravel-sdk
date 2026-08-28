@@ -194,7 +194,7 @@ describe('BlaaizClient.makeRequest', function () {
         expect($lastRequest->hasHeader('x-blaaiz-api-key'))->toBeTrue();
         expect($lastRequest->getHeader('x-blaaiz-api-key')[0])->toBe('test-key');
         expect($lastRequest->getHeader('Accept')[0])->toBe('application/json');
-        expect($lastRequest->getHeader('User-Agent')[0])->toBe('Blaaiz-Laravel-SDK/1.0.0');
+        expect($lastRequest->getHeader('User-Agent')[0])->toBe('Blaaiz-Laravel-SDK/1.4.0');
     });
 
     it('sends JSON data for POST requests', function () {
