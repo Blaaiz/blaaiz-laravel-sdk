@@ -69,6 +69,7 @@ The root SDK exposes service accessors:
 - `webhooks()`
 - `rates()`
 - `swaps()`
+- `refunds()`
 
 These are also available as public properties on the underlying SDK instance.
 
@@ -131,8 +132,7 @@ $result = Blaaiz::createCompleteCollection([
     'collection_data' => [
         'wallet_id' => 'wallet-id',
         'amount' => 100,
-        'currency' => 'NGN',
-        'method' => 'bank_transfer',
+        'method' => 'open_banking',
     ],
     'create_vba' => true,
 ]);

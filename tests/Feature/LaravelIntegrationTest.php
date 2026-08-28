@@ -35,15 +35,15 @@ describe('Laravel Integration', function () {
             $client = $clientProperty->getValue($blaaiz);
 
             $clientReflection = new ReflectionClass($client);
-            
+
             $apiKeyProperty = $clientReflection->getProperty('apiKey');
             $apiKeyProperty->setAccessible(true);
             $apiKey = $apiKeyProperty->getValue($client);
-            
+
             $baseUrlProperty = $clientReflection->getProperty('baseUrl');
             $baseUrlProperty->setAccessible(true);
             $baseUrl = $baseUrlProperty->getValue($client);
-            
+
             $timeoutProperty = $clientReflection->getProperty('timeout');
             $timeoutProperty->setAccessible(true);
             $timeout = $timeoutProperty->getValue($client);
@@ -55,20 +55,20 @@ describe('Laravel Integration', function () {
 
         it('publishes configuration file', function () {
             $provider = new BlaaizServiceProvider(app());
-            
+
             // Check that the boot method exists
             expect(method_exists($provider, 'boot'))->toBeTrue();
-            
+
             // Check that the config file path exists
-            $configPath = __DIR__ . '/../../config/blaaiz.php';
+            $configPath = __DIR__.'/../../config/blaaiz.php';
             expect(file_exists($configPath))->toBeTrue();
         });
 
         it('provides correct services', function () {
             $provider = new BlaaizServiceProvider(app());
-            
+
             $provides = $provider->provides();
-            
+
             expect($provides)->toContain(Blaaiz::class);
         });
     });
@@ -88,7 +88,7 @@ describe('Laravel Integration', function () {
             $method = $reflection->getMethod('getFacadeAccessor');
             $method->setAccessible(true);
             $accessor = $method->invoke(null);
-            
+
             expect($accessor)->toBe('blaaiz');
         });
 
@@ -132,6 +132,7 @@ describe('Laravel Integration', function () {
             expect($blaaiz->webhooks)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\WebhookService::class);
             expect($blaaiz->rates)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\RateService::class);
             expect($blaaiz->swaps)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\SwapService::class);
+            expect($blaaiz->refunds)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\RefundService::class);
         });
 
         it('can be bound with custom configuration', function () {
@@ -140,12 +141,12 @@ describe('Laravel Integration', function () {
                 return new Blaaiz([
                     'api_key' => 'custom-api-key',
                     'base_url' => 'https://api.custom-test.com',
-                    'timeout' => 45
+                    'timeout' => 45,
                 ]);
             });
 
             $blaaiz = app(Blaaiz::class);
-            
+
             expect($blaaiz)->toBeInstanceOf(Blaaiz::class);
         });
     });
@@ -154,7 +155,7 @@ describe('Laravel Integration', function () {
         it('works with Laravel helper functions', function () {
             // Test that the SDK works with Laravel helpers like app(), config(), env()
             $blaaiz = app(Blaaiz::class);
-            
+
             expect($blaaiz)->toBeInstanceOf(Blaaiz::class);
             expect(config('blaaiz'))->toBeArray();
             expect(config('blaaiz.api_key'))->toBeString();
@@ -163,12 +164,12 @@ describe('Laravel Integration', function () {
         it('integrates with Laravel logging', function () {
             // The SDK should work with Laravel's logging system if needed
             $blaaiz = app(Blaaiz::class);
-            
+
             expect($blaaiz)->toBeInstanceOf(Blaaiz::class);
-            
+
             // Test that we can create exceptions with proper status codes
             $exception = new \Blaaiz\LaravelSdk\Exceptions\BlaaizException('Test error', 400, 'TEST_ERROR');
-            
+
             expect($exception->getMessage())->toBe('Test error');
             expect($exception->getStatus())->toBe(400);
             expect($exception->getErrorCode())->toBe('TEST_ERROR');

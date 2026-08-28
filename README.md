@@ -98,6 +98,7 @@ return [
 - `webhooks()`
 - `rates()`
 - `swaps()`
+- `refunds()`
 
 These services are also exposed as public properties on the underlying SDK instance.
 
@@ -147,8 +148,11 @@ $payout = Blaaiz::payouts()->initiate([
     'from_amount' => 100,
     'bank_id' => 'bank-id',
     'account_number' => '0123456789',
+    'merchant_reference' => 'order-12345', // optional, unique per business
 ]);
 ```
+
+`merchant_reference` is an optional string of maximum 255 characters. It also works on collections. The value must be unique for each business. The API returns it on the transaction, transaction list items, and the payout and collection webhooks.
 
 ### Upload a KYC document
 
@@ -181,6 +185,7 @@ $event = Blaaiz::webhooks()->constructEvent(
 - [Fees and files](docs/fees-files.md)
 - [Webhooks](docs/webhooks.md)
 - [Swaps](docs/swaps.md)
+- [Refunds](docs/refunds.md)
 
 ## Runnable Examples
 

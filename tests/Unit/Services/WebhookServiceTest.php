@@ -1,8 +1,8 @@
 <?php
 
-use Blaaiz\LaravelSdk\Services\WebhookService;
-use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
 use Blaaiz\LaravelSdk\BlaaizClient;
+use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
+use Blaaiz\LaravelSdk\Services\WebhookService;
 use Carbon\Carbon;
 
 describe('WebhookService', function () {
@@ -16,17 +16,17 @@ describe('WebhookService', function () {
     });
 
     it('validates required fields for register', function () {
-        expect(fn() => $this->service->register([]))
+        expect(fn () => $this->service->register([]))
             ->toThrow(BlaaizException::class, 'collection_url is required');
 
-        expect(fn() => $this->service->register(['collection_url' => 'https://example.com/collection']))
+        expect(fn () => $this->service->register(['collection_url' => 'https://example.com/collection']))
             ->toThrow(BlaaizException::class, 'payout_url is required');
     });
 
     it('calls makeRequest with correct parameters for register', function () {
         $webhookData = [
             'collection_url' => 'https://example.com/collection',
-            'payout_url' => 'https://example.com/payout'
+            'payout_url' => 'https://example.com/payout',
         ];
 
         $this->mockClient
@@ -58,16 +58,16 @@ describe('WebhookService', function () {
         $this->mockClient
             ->shouldReceive('makeRequest')
             ->once()
-            ->with('PUT', '/api/external/webhook', $webhookData)
+            ->with('PUT', '/api/external/webhook/webhook-123', $webhookData)
             ->andReturn(['data' => ['id' => 'webhook-123']]);
 
-        $result = $this->service->update($webhookData);
+        $result = $this->service->update('webhook-123', $webhookData);
 
         expect($result)->toBe(['data' => ['id' => 'webhook-123']]);
     });
 
     it('validates required fields for replay', function () {
-        expect(fn() => $this->service->replay([]))
+        expect(fn () => $this->service->replay([]))
             ->toThrow(BlaaizException::class, 'transaction_id is required');
     });
 
@@ -77,7 +77,7 @@ describe('WebhookService', function () {
         $this->mockClient
             ->shouldReceive('makeRequest')
             ->once()
-            ->with('POST', '/api/external/webhook/replay', $replayData)
+            ->with('POST', '/api/external/webhook-replay', $replayData)
             ->andReturn(['data' => ['status' => 'replayed']]);
 
         $result = $this->service->replay($replayData);
@@ -86,16 +86,16 @@ describe('WebhookService', function () {
     });
 
     it('validates required parameters for verifySignature', function () {
-        expect(fn() => $this->service->verifySignature('', 'sig', 'timestamp', 'secret'))
+        expect(fn () => $this->service->verifySignature('', 'sig', 'timestamp', 'secret'))
             ->toThrow(BlaaizException::class, 'Payload is required for signature verification');
 
-        expect(fn() => $this->service->verifySignature('payload', '', 'timestamp', 'secret'))
+        expect(fn () => $this->service->verifySignature('payload', '', 'timestamp', 'secret'))
             ->toThrow(BlaaizException::class, 'Signature is required for signature verification');
 
-        expect(fn() => $this->service->verifySignature('payload', 'sig', '', 'secret'))
+        expect(fn () => $this->service->verifySignature('payload', 'sig', '', 'secret'))
             ->toThrow(BlaaizException::class, 'Timestamp is required for signature verification');
 
-        expect(fn() => $this->service->verifySignature('payload', 'sig', 'timestamp', ''))
+        expect(fn () => $this->service->verifySignature('payload', 'sig', 'timestamp', ''))
             ->toThrow(BlaaizException::class, 'Webhook secret is required for signature verification');
     });
 
@@ -103,7 +103,7 @@ describe('WebhookService', function () {
         $payload = '{"transaction_id":"txn_123","status":"completed"}';
         $secret = 'webhook_secret_key';
         $timestamp = '1234567890';
-        $signed = $timestamp . '.' . $payload;
+        $signed = $timestamp.'.'.$payload;
         $validSignature = hash_hmac('sha256', $signed, $secret);
 
         $result = $this->service->verifySignature($payload, $validSignature, $timestamp, $secret);
@@ -124,7 +124,7 @@ describe('WebhookService', function () {
         $payload = '{"transaction_id":"txn_123","status":"completed"}';
         $secret = 'webhook_secret_key';
         $timestamp = '1234567890';
-        $signed = $timestamp . '.' . $payload;
+        $signed = $timestamp.'.'.$payload;
         $validSignature = hash_hmac('sha256', $signed, $secret);
 
         $result = $this->service->verifySignature($payload, $validSignature, $timestamp, $secret);
@@ -138,7 +138,7 @@ describe('WebhookService', function () {
         $payload = '{"transaction_id":"txn_123","status":"completed"}';
         $secret = 'webhook_secret_key';
         $timestamp = '1234567890';
-        $signed = $timestamp . '.' . $payload;
+        $signed = $timestamp.'.'.$payload;
         $validSignature = hash_hmac('sha256', $signed, $secret);
 
         $event = $this->service->constructEvent($payload, $validSignature, $timestamp, $secret);
@@ -158,7 +158,7 @@ describe('WebhookService', function () {
         $timestamp = '1234567890';
         $invalidSignature = 'invalid_signature';
 
-        expect(fn() => $this->service->constructEvent($payload, $invalidSignature, $timestamp, $secret))
+        expect(fn () => $this->service->constructEvent($payload, $invalidSignature, $timestamp, $secret))
             ->toThrow(BlaaizException::class, 'Invalid webhook signature');
     });
 
@@ -166,10 +166,10 @@ describe('WebhookService', function () {
         $payload = 'invalid json';
         $secret = 'webhook_secret_key';
         $timestamp = '1234567890';
-        $signed = $timestamp . '.' . $payload;
+        $signed = $timestamp.'.'.$payload;
         $validSignature = hash_hmac('sha256', $signed, $secret);
 
-        expect(fn() => $this->service->constructEvent($payload, $validSignature, $timestamp, $secret))
+        expect(fn () => $this->service->constructEvent($payload, $validSignature, $timestamp, $secret))
             ->toThrow(BlaaizException::class, 'Invalid webhook payload: unable to parse JSON');
     });
 
@@ -180,7 +180,7 @@ describe('WebhookService', function () {
         $payload = '{"transaction_id":"txn_123","status":"completed"}';
         $secret = 'webhook_secret_key';
         $timestamp = '1234567890';
-        $signed = $timestamp . '.' . $payload;
+        $signed = $timestamp.'.'.$payload;
         $validSignature = hash_hmac('sha256', $signed, $secret);
 
         $event = $this->service->constructEvent($payload, $validSignature, $timestamp, $secret);

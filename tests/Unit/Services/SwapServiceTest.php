@@ -16,13 +16,13 @@ describe('SwapService', function () {
     });
 
     it('validates required fields for swap', function () {
-        expect(fn() => $this->service->swap([]))
+        expect(fn () => $this->service->initiate([]))
             ->toThrow(BlaaizException::class, 'from_business_wallet_id is required');
 
-        expect(fn() => $this->service->swap(['from_business_wallet_id' => 'w1']))
+        expect(fn () => $this->service->initiate(['from_business_wallet_id' => 'w1']))
             ->toThrow(BlaaizException::class, 'to_business_wallet_id is required');
 
-        expect(fn() => $this->service->swap([
+        expect(fn () => $this->service->initiate([
             'from_business_wallet_id' => 'w1',
             'to_business_wallet_id' => 'w2',
         ]))->toThrow(BlaaizException::class, 'amount is required');
@@ -42,7 +42,7 @@ describe('SwapService', function () {
             ->with('POST', '/api/external/swap', $swapData)
             ->andReturn(['data' => ['message' => 'Money swap successful!']]);
 
-        $result = $this->service->swap($swapData);
+        $result = $this->service->initiate($swapData);
         expect($result)->toBe(['data' => ['message' => 'Money swap successful!']]);
     });
 
@@ -60,7 +60,21 @@ describe('SwapService', function () {
             ->with('POST', '/api/external/swap', $swapData)
             ->andReturn(['data' => ['message' => 'Money swap successful!']]);
 
-        $result = $this->service->swap($swapData);
+        $result = $this->service->initiate($swapData);
         expect($result)->toBe(['data' => ['message' => 'Money swap successful!']]);
     });
+    it('keeps swap() as a deprecated alias of initiate()', function () {
+        $swapData = ['from_business_wallet_id' => 'a', 'to_business_wallet_id' => 'b', 'amount' => 10];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/swap', $swapData)
+            ->andReturn(['data' => ['status' => 'SUCCESSFUL']]);
+
+        $result = $this->service->swap($swapData);
+
+        expect($result)->toBe(['data' => ['status' => 'SUCCESSFUL']]);
+    });
+
 });

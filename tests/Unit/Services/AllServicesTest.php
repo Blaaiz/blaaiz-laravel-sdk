@@ -1,15 +1,15 @@
 <?php
 
-use Blaaiz\LaravelSdk\Services\CollectionService;
-use Blaaiz\LaravelSdk\Services\WalletService;
-use Blaaiz\LaravelSdk\Services\VirtualBankAccountService;
-use Blaaiz\LaravelSdk\Services\TransactionService;
+use Blaaiz\LaravelSdk\BlaaizClient;
+use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
 use Blaaiz\LaravelSdk\Services\BankService;
+use Blaaiz\LaravelSdk\Services\CollectionService;
 use Blaaiz\LaravelSdk\Services\CurrencyService;
 use Blaaiz\LaravelSdk\Services\FeesService;
 use Blaaiz\LaravelSdk\Services\FileService;
-use Blaaiz\LaravelSdk\Exceptions\BlaaizException;
-use Blaaiz\LaravelSdk\BlaaizClient;
+use Blaaiz\LaravelSdk\Services\TransactionService;
+use Blaaiz\LaravelSdk\Services\VirtualBankAccountService;
+use Blaaiz\LaravelSdk\Services\WalletService;
 
 describe('CollectionService', function () {
     beforeEach(function () {
@@ -22,29 +22,39 @@ describe('CollectionService', function () {
     });
 
     it('validates required fields for initiate', function () {
-        expect(fn() => $this->service->initiate([]))
-            ->toThrow(BlaaizException::class, 'customer_id is required');
+        expect(fn () => $this->service->initiate([]))
+            ->toThrow(BlaaizException::class, 'method is required');
 
-        expect(fn() => $this->service->initiate(['customer_id' => 'c1']))
-            ->toThrow(BlaaizException::class, 'wallet_id is required');
-
-        expect(fn() => $this->service->initiate(['customer_id' => 'c1', 'wallet_id' => 'w1']))
+        expect(fn () => $this->service->initiate(['method' => 'open_banking']))
             ->toThrow(BlaaizException::class, 'amount is required');
 
-        expect(fn() => $this->service->initiate(['customer_id' => 'c1', 'wallet_id' => 'w1', 'amount' => 100]))
-            ->toThrow(BlaaizException::class, 'currency is required');
-
-        expect(fn() => $this->service->initiate(['customer_id' => 'c1', 'wallet_id' => 'w1', 'amount' => 100, 'currency' => 'NGN']))
-            ->toThrow(BlaaizException::class, 'method is required');
+        expect(fn () => $this->service->initiate(['method' => 'open_banking', 'amount' => 100]))
+            ->toThrow(BlaaizException::class, 'wallet_id is required');
     });
 
-    it('calls makeRequest for initiate', function () {
-        $collectionData = [
-            'customer_id' => 'c1',
-            'wallet_id' => 'w1',
+    it('validates card fields for initiate with card method', function () {
+        expect(fn () => $this->service->initiate([
+            'method' => 'card',
             'amount' => 100,
-            'currency' => 'NGN',
-            'method' => 'open_banking'
+            'wallet_id' => 'w1',
+        ]))->toThrow(BlaaizException::class, 'customer_id is required for card method');
+
+        expect(fn () => $this->service->initiate([
+            'method' => 'card',
+            'amount' => 100,
+            'wallet_id' => 'w1',
+            'customer_id' => 'c1',
+            'card_holder_name' => 'John Doe',
+            'card_number' => '4111111111111111',
+            'expiry' => '12/30',
+        ]))->toThrow(BlaaizException::class, 'cvc is required for card method');
+    });
+
+    it('calls makeRequest for initiate without requiring customer_id or currency', function () {
+        $collectionData = [
+            'method' => 'open_banking',
+            'amount' => 100,
+            'wallet_id' => 'w1',
         ];
 
         $this->mockClient
@@ -55,6 +65,29 @@ describe('CollectionService', function () {
 
         $result = $this->service->initiate($collectionData);
         expect($result)->toBe(['data' => ['id' => 'collection-123']]);
+    });
+
+    it('forwards merchant_reference for initiate', function () {
+        $collectionData = [
+            'method' => 'open_banking',
+            'amount' => 100,
+            'wallet_id' => 'w1',
+            'merchant_reference' => 'order-123',
+        ];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/collection', $collectionData)
+            ->andReturn(['data' => ['id' => 'collection-123', 'merchant_reference' => 'order-123']]);
+
+        $result = $this->service->initiate($collectionData);
+        expect($result)->toBe(['data' => ['id' => 'collection-123', 'merchant_reference' => 'order-123']]);
+    });
+
+    it('validates required fields for initiateCrypto', function () {
+        expect(fn () => $this->service->initiateCrypto(['amount' => 100, 'wallet_id' => 'w1']))
+            ->toThrow(BlaaizException::class, 'network is required');
     });
 
     it('calls makeRequest for initiateCrypto', function () {
@@ -75,11 +108,32 @@ describe('CollectionService', function () {
         expect($result)->toBe(['data' => ['address' => '0x123']]);
     });
 
+    it('validates required fields for initiateInteracMoneyRequest', function () {
+        expect(fn () => $this->service->initiateInteracMoneyRequest([]))
+            ->toThrow(BlaaizException::class, 'amount is required');
+
+        expect(fn () => $this->service->initiateInteracMoneyRequest(['amount' => 100]))
+            ->toThrow(BlaaizException::class, 'email is required');
+    });
+
+    it('calls makeRequest for initiateInteracMoneyRequest', function () {
+        $interacData = ['amount' => 100, 'email' => 'sender@example.com'];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/collection/interac-money-request', $interacData)
+            ->andReturn(['data' => ['transaction_id' => 'txn1', 'reference' => 'ref1']]);
+
+        $result = $this->service->initiateInteracMoneyRequest($interacData);
+        expect($result)->toBe(['data' => ['transaction_id' => 'txn1', 'reference' => 'ref1']]);
+    });
+
     it('validates customer_id for attachCustomer', function () {
-        expect(fn() => $this->service->attachCustomer([]))
+        expect(fn () => $this->service->attachCustomer([]))
             ->toThrow(BlaaizException::class, 'customer_id is required');
 
-        expect(fn() => $this->service->attachCustomer(['customer_id' => 'c1']))
+        expect(fn () => $this->service->attachCustomer(['customer_id' => 'c1']))
             ->toThrow(BlaaizException::class, 'transaction_id is required');
     });
 
@@ -107,8 +161,19 @@ describe('CollectionService', function () {
         expect($result)->toBe(['data' => ['ethereum', 'tron']]);
     });
 
+    it('calls makeRequest for getCryptoNetworks with filters', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', '/api/external/collection/crypto/networks?transaction_type=payout')
+            ->andReturn(['data' => ['ethereum']]);
+
+        $result = $this->service->getCryptoNetworks(['transaction_type' => 'payout']);
+        expect($result)->toBe(['data' => ['ethereum']]);
+    });
+
     it('validates required fields for acceptInteracMoneyRequest', function () {
-        expect(fn() => $this->service->acceptInteracMoneyRequest([]))
+        expect(fn () => $this->service->acceptInteracMoneyRequest([]))
             ->toThrow(BlaaizException::class, 'reference_number is required');
     });
 
@@ -148,7 +213,7 @@ describe('WalletService', function () {
     });
 
     it('validates wallet ID for get', function () {
-        expect(fn() => $this->service->get(''))
+        expect(fn () => $this->service->get(''))
             ->toThrow(BlaaizException::class, 'Wallet ID is required');
     });
 
@@ -175,7 +240,7 @@ describe('VirtualBankAccountService', function () {
     });
 
     it('validates wallet_id for create', function () {
-        expect(fn() => $this->service->create([]))
+        expect(fn () => $this->service->create([]))
             ->toThrow(BlaaizException::class, 'wallet_id is required');
     });
 
@@ -237,7 +302,7 @@ describe('VirtualBankAccountService', function () {
     });
 
     it('validates ID for get', function () {
-        expect(fn() => $this->service->get(''))
+        expect(fn () => $this->service->get(''))
             ->toThrow(BlaaizException::class, 'Virtual bank account ID is required');
     });
 
@@ -253,7 +318,7 @@ describe('VirtualBankAccountService', function () {
     });
 
     it('validates ID for close', function () {
-        expect(fn() => $this->service->close(''))
+        expect(fn () => $this->service->close(''))
             ->toThrow(BlaaizException::class, 'Virtual bank account ID is required');
     });
 
@@ -280,13 +345,13 @@ describe('VirtualBankAccountService', function () {
     });
 
     it('validates required parameters for getIdentificationType', function () {
-        expect(fn() => $this->service->getIdentificationType())
+        expect(fn () => $this->service->getIdentificationType())
             ->toThrow(BlaaizException::class, 'Either customer_id or both country and type are required');
 
-        expect(fn() => $this->service->getIdentificationType(null, 'NG'))
+        expect(fn () => $this->service->getIdentificationType(null, 'NG'))
             ->toThrow(BlaaizException::class, 'Either customer_id or both country and type are required');
 
-        expect(fn() => $this->service->getIdentificationType(null, null, 'individual'))
+        expect(fn () => $this->service->getIdentificationType(null, null, 'individual'))
             ->toThrow(BlaaizException::class, 'Either customer_id or both country and type are required');
     });
 
@@ -334,8 +399,21 @@ describe('TransactionService', function () {
         expect($result)->toBe(['data' => []]);
     });
 
+    it('forwards merchant_reference as a list filter', function () {
+        $filters = ['merchant_reference' => 'order-123'];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/transaction', $filters)
+            ->andReturn(['data' => [['id' => 'txn1', 'merchant_reference' => 'order-123']]]);
+
+        $result = $this->service->list($filters);
+        expect($result)->toBe(['data' => [['id' => 'txn1', 'merchant_reference' => 'order-123']]]);
+    });
+
     it('validates transaction ID for get', function () {
-        expect(fn() => $this->service->get(''))
+        expect(fn () => $this->service->get(''))
             ->toThrow(BlaaizException::class, 'Transaction ID is required');
     });
 
@@ -374,10 +452,10 @@ describe('BankService', function () {
     });
 
     it('validates required fields for lookupAccount', function () {
-        expect(fn() => $this->service->lookupAccount([]))
+        expect(fn () => $this->service->lookupAccount([]))
             ->toThrow(BlaaizException::class, 'account_number is required');
 
-        expect(fn() => $this->service->lookupAccount(['account_number' => '123']))
+        expect(fn () => $this->service->lookupAccount(['account_number' => '123']))
             ->toThrow(BlaaizException::class, 'bank_id is required');
     });
 
@@ -392,6 +470,60 @@ describe('BankService', function () {
 
         $result = $this->service->lookupAccount($lookupData);
         expect($result)->toBe(['data' => ['account_name' => 'John Doe']]);
+    });
+
+    it('calls makeRequest for list with filters', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', '/api/external/bank?currency=NGN&country=NG')
+            ->andReturn(['data' => []]);
+
+        $result = $this->service->list(['currency' => 'NGN', 'country' => 'NG']);
+        expect($result)->toBe(['data' => []]);
+    });
+
+    it('validates required fields for verifyPayee', function () {
+        expect(fn () => $this->service->verifyPayee([]))
+            ->toThrow(BlaaizException::class, 'sort_code is required');
+
+        expect(fn () => $this->service->verifyPayee(['sort_code' => '12-34-56']))
+            ->toThrow(BlaaizException::class, 'account_number is required');
+    });
+
+    it('calls makeRequest for verifyPayee', function () {
+        $payeeData = [
+            'sort_code' => '12-34-56',
+            'account_number' => '12345678',
+            'account_name' => 'John Doe',
+        ];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/bank/payee-verification', $payeeData)
+            ->andReturn(['data' => ['matched' => true]]);
+
+        $result = $this->service->verifyPayee($payeeData);
+        expect($result)->toBe(['data' => ['matched' => true]]);
+    });
+
+    it('validates required fields for verifyIban', function () {
+        expect(fn () => $this->service->verifyIban([]))
+            ->toThrow(BlaaizException::class, 'iban is required');
+    });
+
+    it('calls makeRequest for verifyIban', function () {
+        $ibanData = ['iban' => 'DE89370400440532013000'];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/bank/iban-verification', $ibanData)
+            ->andReturn(['data' => ['sepa_reachable' => true]]);
+
+        $result = $this->service->verifyIban($ibanData);
+        expect($result)->toBe(['data' => ['sepa_reachable' => true]]);
     });
 });
 
@@ -429,15 +561,15 @@ describe('FeesService', function () {
     });
 
     it('validates required fields for getBreakdown', function () {
-        expect(fn() => $this->service->getBreakdown([]))
+        expect(fn () => $this->service->getBreakdown([]))
             ->toThrow(BlaaizException::class, 'from_currency_id is required');
 
-        expect(fn() => $this->service->getBreakdown(['from_currency_id' => 'USD']))
+        expect(fn () => $this->service->getBreakdown(['from_currency_id' => 'USD']))
             ->toThrow(BlaaizException::class, 'to_currency_id is required');
 
-        expect(fn() => $this->service->getBreakdown([
+        expect(fn () => $this->service->getBreakdown([
             'from_currency_id' => 'USD',
-            'to_currency_id' => 'NGN'
+            'to_currency_id' => 'NGN',
         ]))->toThrow(BlaaizException::class, 'Either from_amount or to_amount is required');
     });
 
@@ -445,7 +577,7 @@ describe('FeesService', function () {
         $feeData = [
             'from_currency_id' => 'USD',
             'to_currency_id' => 'NGN',
-            'from_amount' => 100
+            'from_amount' => 100,
         ];
 
         $this->mockClient
@@ -462,7 +594,7 @@ describe('FeesService', function () {
         $feeData = [
             'from_currency_id' => 'USD',
             'to_currency_id' => 'NGN',
-            'to_amount' => 50000
+            'to_amount' => 50000,
         ];
 
         $this->mockClient
@@ -487,10 +619,10 @@ describe('FileService', function () {
     });
 
     it('validates required fields for getPresignedUrl', function () {
-        expect(fn() => $this->service->getPresignedUrl([]))
+        expect(fn () => $this->service->getPresignedUrl([]))
             ->toThrow(BlaaizException::class, 'customer_id is required');
 
-        expect(fn() => $this->service->getPresignedUrl(['customer_id' => 'c1']))
+        expect(fn () => $this->service->getPresignedUrl(['customer_id' => 'c1']))
             ->toThrow(BlaaizException::class, 'file_category is required');
     });
 

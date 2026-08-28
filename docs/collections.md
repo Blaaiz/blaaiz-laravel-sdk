@@ -4,30 +4,56 @@
 
 ```php
 $collection = $blaaiz->collections()->initiate([
-    'customer_id' => 'customer-id',
-    'wallet_id' => 'wallet-id',
-    'amount' => 100,
-    'currency' => 'EUR',
     'method' => 'open_banking',
+    'amount' => 100,
+    'wallet_id' => 'wallet-id',
     'redirect_url' => 'https://example.com/callback',
+    'merchant_reference' => 'order-12345', // optional
 ]);
 ```
 
-Required fields:
+Always required:
+
+- `method` (`open_banking` or `card`)
+- `amount`
+- `wallet_id`
+
+The `card` method also requires these fields:
 
 - `customer_id`
-- `wallet_id`
-- `amount`
-- `currency`
-- `method`
+- `card_holder_name`
+- `card_number`
+- `expiry`
+- `cvc`
+
+`merchant_reference` is optional. It is a string of maximum 255 characters. The value must be unique for each business. See [merchant reference](#merchant-reference).
 
 ## `initiateCrypto(array $cryptoData)`
 
 ```php
 $cryptoCollection = $blaaiz->collections()->initiateCrypto([
+    'amount' => 100,
     'wallet_id' => 'wallet-id',
-    'currency' => 'USDT',
     'network' => 'TRON',
+    'token' => 'USDT',
+]);
+```
+
+Required fields:
+
+- `amount`
+- `wallet_id`
+- `network`
+- `token`
+
+## `getCryptoNetworks(array $filters = [])`
+
+```php
+$networks = $blaaiz->collections()->getCryptoNetworks();
+
+// Filter by transaction type (collection or payout).
+$payoutNetworks = $blaaiz->collections()->getCryptoNetworks([
+    'transaction_type' => 'payout',
 ]);
 ```
 
@@ -42,11 +68,24 @@ $attached = $blaaiz->collections()->attachCustomer([
 ]);
 ```
 
-## `getCryptoNetworks()`
+## `initiateInteracMoneyRequest(array $interacData)`
+
+Sends an Interac money request to a payer.
 
 ```php
-$networks = $blaaiz->collections()->getCryptoNetworks();
+$request = $blaaiz->collections()->initiateInteracMoneyRequest([
+    'amount' => 100,
+    'email' => 'payer@example.com',
+    'customer_name' => 'John Doe', // optional
+    'expiry_hours' => 24,          // optional, 1 to 120
+    'note' => 'Invoice 42',        // optional
+]);
 ```
+
+Required fields:
+
+- `amount`
+- `email`
 
 ## `acceptInteracMoneyRequest(array $interacData)`
 
@@ -58,4 +97,21 @@ $result = $blaaiz->collections()->acceptInteracMoneyRequest([
 ]);
 ```
 
-Only `reference_number` is enforced by the SDK. Other fields depend on the flow you are using.
+The SDK enforces only `reference_number`. The other fields depend on the flow that you use.
+
+## merchant reference
+
+`merchant_reference` is an optional string of maximum 255 characters on `initiate`. It lets you attach your own reference to a collection.
+
+The value must be unique for each business. If you send a duplicate value, the API returns HTTP 422 with this error:
+
+```json
+{
+    "message": "...",
+    "errors": {
+        "merchant_reference": ["Could not proceed. Kindly check your merchant reference and try again"]
+    }
+}
+```
+
+Two different businesses can use the same value. The API returns `merchant_reference` on the transaction, on transaction list items, and on the collection webhook. To find a transaction by this value, see [Transactions](transactions-banks-currencies-rates.md).

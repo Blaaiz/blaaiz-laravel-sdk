@@ -20,6 +20,7 @@ class PayoutController extends Controller
             'to_amount' => ['nullable', 'numeric'],
             'bank_id' => ['nullable', 'string'],
             'account_number' => ['nullable', 'string'],
+            'merchant_reference' => ['nullable', 'string', 'max:255'],
         ]));
 
         return response()->json($payout);

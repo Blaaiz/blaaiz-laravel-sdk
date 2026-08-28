@@ -11,6 +11,7 @@ use Blaaiz\LaravelSdk\Services\FeesService;
 use Blaaiz\LaravelSdk\Services\FileService;
 use Blaaiz\LaravelSdk\Services\PayoutService;
 use Blaaiz\LaravelSdk\Services\RateService;
+use Blaaiz\LaravelSdk\Services\RefundService;
 use Blaaiz\LaravelSdk\Services\SwapService;
 use Blaaiz\LaravelSdk\Services\TransactionService;
 use Blaaiz\LaravelSdk\Services\VirtualBankAccountService;
@@ -22,18 +23,32 @@ class Blaaiz
     protected BlaaizClient $client;
 
     public CustomerService $customers;
+
     public CollectionService $collections;
+
     public PayoutService $payouts;
+
     public WalletService $wallets;
+
     public VirtualBankAccountService $virtualBankAccounts;
+
     public TransactionService $transactions;
+
     public BankService $banks;
+
     public CurrencyService $currencies;
+
     public FeesService $fees;
+
     public FileService $files;
+
     public WebhookService $webhooks;
+
     public RateService $rates;
+
     public SwapService $swaps;
+
+    public RefundService $refunds;
 
     public function __construct(array $options = [])
     {
@@ -52,12 +67,14 @@ class Blaaiz
         $this->webhooks = new WebhookService($this->client);
         $this->rates = new RateService($this->client);
         $this->swaps = new SwapService($this->client);
+        $this->refunds = new RefundService($this->client);
     }
 
     public function testConnection(): bool
     {
         try {
             $this->currencies->list();
+
             return true;
         } catch (BlaaizException $e) {
             return false;
@@ -72,7 +89,7 @@ class Blaaiz
         try {
             $customerId = $payoutData['customer_id'] ?? null;
 
-            if (!$customerId && $customerData) {
+            if (! $customerId && $customerData) {
                 $customerResult = $this->customers->create($customerData);
                 $customerId = $customerResult['data']['data']['id'];
             }
@@ -111,7 +128,7 @@ class Blaaiz
         try {
             $customerId = $collectionData['customer_id'] ?? null;
 
-            if (!$customerId && $customerData) {
+            if (! $customerId && $customerData) {
                 $customerResult = $this->customers->create($customerData);
                 $customerId = $customerResult['data']['data']['id'];
             }
@@ -120,8 +137,8 @@ class Blaaiz
             if ($createVBA) {
                 $vbaResult = $this->virtualBankAccounts->create([
                     'wallet_id' => $collectionData['wallet_id'],
-                    'account_name' => $customerData 
-                        ? "{$customerData['first_name']} {$customerData['last_name']}" 
+                    'account_name' => $customerData
+                        ? "{$customerData['first_name']} {$customerData['last_name']}"
                         : 'Customer Account',
                 ]);
                 $vbaData = $vbaResult['data'];
@@ -209,5 +226,10 @@ class Blaaiz
     public function swaps(): SwapService
     {
         return $this->swaps;
+    }
+
+    public function refunds(): RefundService
+    {
+        return $this->refunds;
     }
 }
