@@ -20,11 +20,12 @@ Required:
 $webhook = $blaaiz->webhooks()->get();
 ```
 
-## `update(array $webhookData)`
+## `update(string $webhookId, array $webhookData)`
 
 ```php
-$updated = $blaaiz->webhooks()->update([
+$updated = $blaaiz->webhooks()->update('webhook-id', [
     'collection_url' => 'https://example.com/webhooks/new-collections',
+    'payout_url' => 'https://example.com/webhooks/new-payouts',
 ]);
 ```
 
