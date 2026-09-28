@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Blaaiz\LaravelSdk\Services\RateService rates()
  * @method static \Blaaiz\LaravelSdk\Services\SwapService swaps()
  * @method static \Blaaiz\LaravelSdk\Services\RefundService refunds()
+ * @method static \Blaaiz\LaravelSdk\Services\SignaService signa()
  * @method static bool testConnection()
  * @method static array createCompletePayout(array $payoutConfig)
  * @method static array createCompleteCollection(array $collectionConfig)

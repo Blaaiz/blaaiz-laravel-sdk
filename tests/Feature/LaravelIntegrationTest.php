@@ -133,6 +133,7 @@ describe('Laravel Integration', function () {
             expect($blaaiz->rates)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\RateService::class);
             expect($blaaiz->swaps)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\SwapService::class);
             expect($blaaiz->refunds)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\RefundService::class);
+            expect($blaaiz->signa)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\SignaService::class);
         });
 
         it('can be bound with custom configuration', function () {

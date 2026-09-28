@@ -12,6 +12,7 @@ use Blaaiz\LaravelSdk\Services\FileService;
 use Blaaiz\LaravelSdk\Services\PayoutService;
 use Blaaiz\LaravelSdk\Services\RateService;
 use Blaaiz\LaravelSdk\Services\RefundService;
+use Blaaiz\LaravelSdk\Services\SignaService;
 use Blaaiz\LaravelSdk\Services\SwapService;
 use Blaaiz\LaravelSdk\Services\TransactionService;
 use Blaaiz\LaravelSdk\Services\VirtualBankAccountService;
@@ -50,6 +51,8 @@ class Blaaiz
 
     public RefundService $refunds;
 
+    public SignaService $signa;
+
     public function __construct(array $options = [])
     {
         $this->client = new BlaaizClient($options);
@@ -68,6 +71,7 @@ class Blaaiz
         $this->rates = new RateService($this->client);
         $this->swaps = new SwapService($this->client);
         $this->refunds = new RefundService($this->client);
+        $this->signa = new SignaService($this->client);
     }
 
     public function testConnection(): bool
@@ -231,5 +235,10 @@ class Blaaiz
     public function refunds(): RefundService
     {
         return $this->refunds;
+    }
+
+    public function signa(): SignaService
+    {
+        return $this->signa;
     }
 }
