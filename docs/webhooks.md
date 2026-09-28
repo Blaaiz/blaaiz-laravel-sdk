@@ -6,6 +6,7 @@
 $webhook = $blaaiz->webhooks()->register([
     'collection_url' => 'https://example.com/webhooks/collections',
     'payout_url' => 'https://example.com/webhooks/payouts',
+    'kyc_url' => 'https://example.com/webhooks/kyc', // optional, for Signa callbacks
 ]);
 ```
 
@@ -13,6 +14,10 @@ Required:
 
 - `collection_url`
 - `payout_url`
+
+Optional:
+
+- `kyc_url` — receives Signa session callbacks
 
 ## `get()`
 
@@ -28,6 +33,8 @@ $updated = $blaaiz->webhooks()->update('webhook-id', [
     'payout_url' => 'https://example.com/webhooks/new-payouts',
 ]);
 ```
+
+`kyc_url` is optional. If you do not send `kyc_url`, the API keeps the current value. To remove the value, send `'kyc_url' => null`.
 
 ## `replay(array $replayData)`
 
@@ -85,3 +92,7 @@ The returned array contains the webhook payload plus:
 
 - `verified => true`
 - `timestamp`
+
+### Verify Signa webhooks
+
+Signa sends `kyc_url` callbacks with the same `x-blaaiz-timestamp` and `x-blaaiz-signature` headers and HMAC-SHA256 scheme as collection and payout webhooks. Use `verifySignature()` or `constructEvent()` for a Signa callback the same way you use them for other webhooks.
