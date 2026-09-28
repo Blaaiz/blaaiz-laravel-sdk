@@ -464,4 +464,61 @@ describe('Signa KYC Sessions', function () {
             expect($e->getStatus())->toBe(404);
         }
     });
+
+    // Reads compliance-kyc:pii:read, a scope granted separately from the other
+    // three, so a fresh session with no verdict is used here instead of the
+    // headless chain above (it cannot be submitted for review by these tests).
+    describe('PII reads', function () use ($runId) {
+        // The PII reads return 409 until the session has a verdict, and a fresh
+        // session never has one. Only an OAuth token is scope-checked, so a 403
+        // skips through skipOnScopeError() rather than failing.
+        it('refuses every PII read with 409 before a verdict', function () use ($runId) {
+            $blaaiz = getBlaaizInstance();
+            if (! $blaaiz) {
+                $this->markTestSkipped('No Blaaiz credentials set');
+            }
+
+            try {
+                $created = createSignaSession($blaaiz, $runId, 'pii');
+            } catch (BlaaizException $e) {
+                skipOnScopeError($e);
+            }
+            $sessionId = $created['data']['data']['id'];
+
+            $reads = [
+                'applicant data' => fn () => $blaaiz->signa->getSessionApplicantData($sessionId),
+                'document list' => fn () => $blaaiz->signa->listSessionDocuments($sessionId),
+                'document download' => fn () => $blaaiz->signa->getSessionDocument($sessionId, 'placeholder-document-id'),
+            ];
+
+            foreach ($reads as $read => $call) {
+                try {
+                    $call();
+                    $this->fail("Expected HTTP 409 for the {$read} before a verdict");
+                } catch (BlaaizException $e) {
+                    if ($e->getStatus() !== 409) {
+                        skipOnScopeError($e);
+                    }
+                    expect($e->getStatus())->toBe(409);
+                }
+            }
+        });
+
+        it('returns 404 for a document on an unknown session', function () {
+            $blaaiz = getBlaaizInstance();
+            if (! $blaaiz) {
+                $this->markTestSkipped('No Blaaiz credentials set');
+            }
+
+            try {
+                $blaaiz->signa->getSessionDocument('00000000-0000-0000-0000-000000000000', 'any-document-id');
+                $this->fail('Expected a BlaaizException for an unknown session');
+            } catch (BlaaizException $e) {
+                if ($e->getStatus() !== 404) {
+                    skipOnScopeError($e);
+                }
+                expect($e->getStatus())->toBe(404);
+            }
+        });
+    });
 });
