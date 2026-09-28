@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.5.0](https://github.com/Blaaiz/blaaiz-laravel-sdk/compare/v1.4.0...v1.5.0) (2026-09-28)
+
+
+### Features
+
+* **oauth:** request the compliance-kyc scopes by default ([da229b4](https://github.com/Blaaiz/blaaiz-laravel-sdk/commit/da229b42da29af48a657a9271046251f7cd5a202))
+* **oauth:** request the compliance-kyc:pii:read scope by default ([05dcc3d](https://github.com/Blaaiz/blaaiz-laravel-sdk/commit/05dcc3d721cd9b2711986eedc53e3dd06f6e2f10))
+* **signa:** add Signa merchant KYC session service ([2b22106](https://github.com/Blaaiz/blaaiz-laravel-sdk/commit/2b221066a89dbc3828b3bec963c1648bc78f4a82))
+* **signa:** read captured applicant data and documents ([cd33837](https://github.com/Blaaiz/blaaiz-laravel-sdk/commit/cd33837458447172d45f6c79c39a4e10f9d36027))
+
 ## 1.4.0 - 2026-08-28
 
 This release brings the SDK up to date with the current Blaaiz API. All Blaaiz SDKs move to 1.4.0 together, so the same version means the same features in every language.
