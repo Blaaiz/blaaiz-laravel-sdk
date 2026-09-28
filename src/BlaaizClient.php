@@ -26,6 +26,7 @@ class BlaaizClient
         'collection:create', 'collection:crypto:create', 'collection:interac:accept',
         'payout:create', 'swap:create', 'transaction:read', 'fees:read', 'file:upload',
         'webhook:read', 'webhook:write', 'webhook:replay', 'rates:read',
+        'compliance-kyc:read', 'compliance-kyc:create', 'compliance-kyc:cancel', 'compliance-kyc:pii:read',
     ];
 
     protected ?string $accessToken = null;
@@ -52,7 +53,7 @@ class BlaaizClient
         $this->defaultHeaders = [
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
-            'User-Agent' => 'Blaaiz-Laravel-SDK/1.4.0',
+            'User-Agent' => 'Blaaiz-Laravel-SDK/1.4.0', // x-release-please-version
         ];
 
         if (!$this->useOAuth) {
@@ -266,7 +267,7 @@ class BlaaizClient
 
             $response = $client->request('GET', $url, [
                 'headers' => [
-                    'User-Agent' => 'Blaaiz-Laravel-SDK/1.4.0',
+                    'User-Agent' => 'Blaaiz-Laravel-SDK/1.4.0', // x-release-please-version
                 ],
             ]);
 

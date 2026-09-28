@@ -101,10 +101,7 @@ config/
 - Follow Laravel conventions for service providers and facades
 
 ## Release Process
-1. Update version in `composer.json`
-2. Update `CHANGELOG.md`
-3. Create a GitHub release
-4. Packagist will automatically update
+See [RELEASING.md](../RELEASING.md) for how releases are automated.
 
 ## Getting Help
 - Check existing issues and discussions

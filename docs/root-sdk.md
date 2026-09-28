@@ -70,6 +70,7 @@ The root SDK exposes service accessors:
 - `rates()`
 - `swaps()`
 - `refunds()`
+- `signa()`
 
 These are also available as public properties on the underlying SDK instance.
 

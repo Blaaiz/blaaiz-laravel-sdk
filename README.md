@@ -99,6 +99,7 @@ return [
 - `rates()`
 - `swaps()`
 - `refunds()`
+- `signa()`
 
 These services are also exposed as public properties on the underlying SDK instance.
 
@@ -174,6 +175,26 @@ $event = Blaaiz::webhooks()->constructEvent(
 );
 ```
 
+### Create a Signa verification session
+
+```php
+$session = Blaaiz::signa()->createSession([
+    'customer_reference' => 'customer-123',
+    'idempotency_key' => 'signa-request-123',
+    'requirements' => ['DOCUMENTS', 'SELFIE', 'FACE_MATCH'],
+    'fulfilment_mode' => 'HOSTED',
+    'applicant' => [
+        'first_name' => 'Ada',
+        'last_name' => 'Lovelace',
+        'country' => 'GBR',
+    ],
+]);
+
+$sessionId = $session['data']['data']['id'];
+```
+
+See [Signa](docs/signa.md) for the full set of methods: list, get, submit, cancel, document uploads, verification links, and reading captured applicant data and documents.
+
 ## API Reference
 
 - [Root SDK helpers](docs/root-sdk.md)
@@ -186,6 +207,7 @@ $event = Blaaiz::webhooks()->constructEvent(
 - [Webhooks](docs/webhooks.md)
 - [Swaps](docs/swaps.md)
 - [Refunds](docs/refunds.md)
+- [Signa](docs/signa.md)
 
 ## Runnable Examples
 

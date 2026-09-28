@@ -231,6 +231,15 @@ describe('BlaaizClient OAuth', function () {
         expect($scope)->toContain('payout:create');
     });
 
+    it('exposes the default scopes including Signa scopes', function () {
+        $scopes = (new ReflectionClass(BlaaizClient::class))->getConstant('ALL_SCOPES');
+
+        expect($scopes)->toHaveCount(25);
+        expect($scopes[0])->toBe('wallet:read');
+        expect(array_slice($scopes, -4))->toBe(['compliance-kyc:read', 'compliance-kyc:create', 'compliance-kyc:cancel', 'compliance-kyc:pii:read']);
+        expect($scopes)->toContain('compliance-kyc:pii:read');
+    });
+
     it('throws a parse error when oauth token response is invalid', function () {
         $tokenClient = new Client([
             'handler' => HandlerStack::create(new MockHandler([
