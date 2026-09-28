@@ -170,14 +170,54 @@ The API currently accepts only these combinations of `requirements` and `fulfilm
 
 If you do not send `fulfilment_mode`, the API uses the first mode in the row for your set. The settings of your business can limit the modes that you can use.
 
+## Read captured data
+
+**Warning:** Applicant data and documents are personal data. Do not log this data. Do not cache this data. Every response in this section carries a `Cache-Control: no-store` header.
+
+These three methods need the `compliance-kyc:pii:read` scope. Blaaiz grants this scope to a credential only on request. With OAuth, a token without the scope gets HTTP 403. Each method returns HTTP 409 until the session status is `APPROVED` or `REJECTED`.
+
+### `getSessionApplicantData(string $sessionId)`
+
+Gets the applicant data that Signa captured for an approved or rejected session.
+
+```php
+$applicantData = $blaaiz->signa()->getSessionApplicantData($sessionId);
+$applicant = $applicantData['data']['data'];
+```
+
+The response data is `null` when the session has a verdict but Signa captured no applicant data. Every field except `session_id` and `extracted_at` can be `null`. The field `document.number` is `null` when the live provider read failed.
+
+### `listSessionDocuments(string $sessionId)`
+
+Lists the documents that Signa captured for an approved or rejected session.
+
+```php
+$documents = $blaaiz->signa()->listSessionDocuments($sessionId);
+```
+
+Each item has a `kind` of `DOCUMENT`, `SELFIE`, `PROOF_OF_ADDRESS`, `LIVENESS_REFERENCE`, or `OTHER`. An item's `unavailable_reason` is `NOT_RETAINED`, `RETRIEVAL_FAILED`, or `null`.
+
+### `getSessionDocument(string $sessionId, string $documentId)`
+
+Gets a download link for one document. The response never contains the document bytes.
+
+```php
+$document = $blaaiz->signa()->getSessionDocument($sessionId, $documentId);
+$downloadUrl = $document['data']['data']['url'];
+```
+
+The link expires after 15 minutes. Call `getSessionDocument()` again for a new link after it expires. Anyone who has the download link can download the document until the link expires. Do not log the link. Do not send it to a client that you do not control.
+
+This method returns HTTP 410 when Blaaiz no longer retains the document. This method also has its own rate limit: 30 requests per minute and 600 requests per hour, per business. Above these limits, the API returns HTTP 429.
+
 ## Webhooks
 
 Signa sends session callbacks to the `kyc_url` of your webhook configuration. To verify a callback, see [Verify Signa webhooks](webhooks.md#verify-signa-webhooks).
 
 ## Errors
 
-A validation failure returns HTTP 422. An unknown session returns HTTP 404. Both raise a `BlaaizException` — see [Error Handling](../README.md#error-handling).
+A validation failure returns HTTP 422. An unknown session or an unknown document returns HTTP 404. Both raise a `BlaaizException` — see [Error Handling](../README.md#error-handling).
 
 ## OAuth scopes
 
-Signa uses three scopes: `compliance-kyc:read`, `compliance-kyc:create`, and `compliance-kyc:cancel`. The SDK includes them in its default scope list. A business without Signa access can still get a token, because the API ignores requested scopes that the client does not hold.
+Signa uses four scopes: `compliance-kyc:read`, `compliance-kyc:create`, `compliance-kyc:cancel`, and `compliance-kyc:pii:read`. The SDK includes all four in its default scope list. The API drops any scope that your credential does not hold, so a business without Signa access, or without the PII scope, can still get a token.

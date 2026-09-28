@@ -193,7 +193,7 @@ $session = Blaaiz::signa()->createSession([
 $sessionId = $session['data']['data']['id'];
 ```
 
-See [Signa](docs/signa.md) for the full set of methods: list, get, submit, cancel, document uploads, and verification links.
+See [Signa](docs/signa.md) for the full set of methods: list, get, submit, cancel, document uploads, verification links, and reading captured applicant data and documents.
 
 ## API Reference
 
