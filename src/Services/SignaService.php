@@ -99,6 +99,31 @@ class SignaService extends BaseService
         return $this->client->makeRequest('POST', self::BASE_PATH.'/'.rawurlencode($sessionId).'/verification-link');
     }
 
+    public function getSessionApplicantData(string $sessionId): array
+    {
+        $this->validateSessionId($sessionId);
+
+        return $this->client->makeRequest('GET', self::BASE_PATH.'/'.rawurlencode($sessionId).'/applicant-data');
+    }
+
+    public function listSessionDocuments(string $sessionId): array
+    {
+        $this->validateSessionId($sessionId);
+
+        return $this->client->makeRequest('GET', self::BASE_PATH.'/'.rawurlencode($sessionId).'/documents');
+    }
+
+    public function getSessionDocument(string $sessionId, string $documentId): array
+    {
+        $this->validateSessionId($sessionId);
+        $this->validateDocumentId($documentId);
+
+        return $this->client->makeRequest(
+            'GET',
+            self::BASE_PATH.'/'.rawurlencode($sessionId).'/documents/'.rawurlencode($documentId)
+        );
+    }
+
     // Short aliases mirror the create/list/get style used by the other SDK resources.
     public function create(array $sessionData): array
     {
@@ -183,6 +208,13 @@ class SignaService extends BaseService
     {
         if (empty($sessionId)) {
             throw new BlaaizException('Session ID is required');
+        }
+    }
+
+    private function validateDocumentId(string $documentId): void
+    {
+        if (empty($documentId)) {
+            throw new BlaaizException('Document ID is required');
         }
     }
 }

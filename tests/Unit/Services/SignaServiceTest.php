@@ -150,6 +150,81 @@ describe('SignaService', function () {
         expect($result)->toBe(['data' => ['verification_link' => 'https://kyc.example.com/session-123']]);
     });
 
+    describe('PII reads', function () {
+        it('gets applicant data with the Signa endpoint', function () {
+            $this->mockClient
+                ->shouldReceive('makeRequest')
+                ->once()
+                ->with('GET', '/api/external/compliance/kyc/sessions/session-123/applicant-data')
+                ->andReturn(['data' => null]);
+
+            $result = $this->service->getSessionApplicantData('session-123');
+            expect($result)->toBe(['data' => null]);
+        });
+
+        it('lists session documents with the Signa endpoint', function () {
+            $this->mockClient
+                ->shouldReceive('makeRequest')
+                ->once()
+                ->with('GET', '/api/external/compliance/kyc/sessions/session-123/documents')
+                ->andReturn(['data' => ['documents' => []]]);
+
+            $result = $this->service->listSessionDocuments('session-123');
+            expect($result)->toBe(['data' => ['documents' => []]]);
+        });
+
+        it('gets a session document with the Signa endpoint', function () {
+            $this->mockClient
+                ->shouldReceive('makeRequest')
+                ->once()
+                ->with('GET', '/api/external/compliance/kyc/sessions/session-123/documents/doc-456')
+                ->andReturn(['data' => ['url' => 'https://s3.example.com/doc-456']]);
+
+            $result = $this->service->getSessionDocument('session-123', 'doc-456');
+            expect($result)->toBe(['data' => ['url' => 'https://s3.example.com/doc-456']]);
+        });
+
+        it('encodes a session id and document id that need encoding', function () {
+            $this->mockClient
+                ->shouldReceive('makeRequest')
+                ->once()
+                ->with('GET', '/api/external/compliance/kyc/sessions/session%2F123/applicant-data')
+                ->andReturn(['data' => null]);
+            $this->mockClient
+                ->shouldReceive('makeRequest')
+                ->once()
+                ->with('GET', '/api/external/compliance/kyc/sessions/session%2F123/documents')
+                ->andReturn(['data' => ['documents' => []]]);
+            $this->mockClient
+                ->shouldReceive('makeRequest')
+                ->once()
+                ->with('GET', '/api/external/compliance/kyc/sessions/session%2F123/documents/doc%2F1')
+                ->andReturn(['data' => ['url' => 'https://s3.example.com/doc']]);
+
+            $this->service->getSessionApplicantData('session/123');
+            $this->service->listSessionDocuments('session/123');
+            $this->service->getSessionDocument('session/123', 'doc/1');
+        });
+
+        it('requires a session id for every PII method and makes no HTTP call', function () {
+            $this->mockClient->shouldNotReceive('makeRequest');
+
+            expect(fn () => $this->service->getSessionApplicantData(''))
+                ->toThrow(BlaaizException::class, 'Session ID is required');
+            expect(fn () => $this->service->listSessionDocuments(''))
+                ->toThrow(BlaaizException::class, 'Session ID is required');
+            expect(fn () => $this->service->getSessionDocument('', 'doc-456'))
+                ->toThrow(BlaaizException::class, 'Session ID is required');
+        });
+
+        it('requires a document id for getSessionDocument and makes no HTTP call', function () {
+            $this->mockClient->shouldNotReceive('makeRequest');
+
+            expect(fn () => $this->service->getSessionDocument('session-123', ''))
+                ->toThrow(BlaaizException::class, 'Document ID is required');
+        });
+    });
+
     it('accepts case-insensitive vocabulary and sends the payload unchanged', function () {
         $data = [
             'customer_reference' => 'customer-123',
