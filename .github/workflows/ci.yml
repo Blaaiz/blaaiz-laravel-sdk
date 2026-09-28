@@ -190,14 +190,43 @@ jobs:
           echo "✅ No debug statements found in production code"
         fi
 
+  release-please:
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: release-please
+      cancel-in-progress: false
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+
+    steps:
+    - uses: googleapis/release-please-action@v5
+      id: release
+      with:
+        config-file: release-please-config.json
+        manifest-file: .release-please-manifest.json
+
   notify-release:
     runs-on: ubuntu-22.04
-    needs: [test, build]
-    if: github.event_name == 'release' && github.event.action == 'published'
+    needs: [test, build, release-please]
+    # A release that release-please creates with GITHUB_TOKEN does not start a
+    # new workflow run, so notify-release runs in this run when release_created is true.
+    # !cancelled() keeps it alive on a manual release event, where release-please
+    # is skipped and would otherwise skip this job.
+    if: >-
+      !cancelled()
+      && needs.test.result == 'success'
+      && needs.build.result == 'success'
+      && (needs.release-please.outputs.release_created == 'true'
+          || (github.event_name == 'release' && github.event.action == 'published'))
 
     steps:
     - name: Notify release success
       run: |
         echo "🎉 Package published successfully!"
-        echo "Version: ${{ github.event.release.tag_name }}"
+        echo "Version: ${{ needs.release-please.outputs.tag_name || github.event.release.tag_name }}"
         echo "Packagist: https://packagist.org/packages/blaaiz/blaaiz-laravel-sdk"

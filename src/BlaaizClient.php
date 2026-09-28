@@ -53,7 +53,7 @@ class BlaaizClient
         $this->defaultHeaders = [
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
-            'User-Agent' => 'Blaaiz-Laravel-SDK/1.4.0',
+            'User-Agent' => 'Blaaiz-Laravel-SDK/1.4.0', // x-release-please-version
         ];
 
         if (!$this->useOAuth) {
@@ -267,7 +267,7 @@ class BlaaizClient
 
             $response = $client->request('GET', $url, [
                 'headers' => [
-                    'User-Agent' => 'Blaaiz-Laravel-SDK/1.4.0',
+                    'User-Agent' => 'Blaaiz-Laravel-SDK/1.4.0', // x-release-please-version
                 ],
             ]);
 
