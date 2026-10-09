@@ -150,6 +150,41 @@ describe('SignaService', function () {
         expect($result)->toBe(['data' => ['verification_link' => 'https://kyc.example.com/session-123']]);
     });
 
+    it('issues a web SDK access token with an id that needs encoding', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/compliance/kyc/sessions/session%2F123/access-token')
+            ->andReturn(['data' => ['access_token' => 'token']]);
+
+        $result = $this->service->issueAccessToken('session/123');
+        expect($result)->toBe(['data' => ['access_token' => 'token']]);
+    });
+
+    it('validates the session id for issueAccessToken and makes no HTTP call', function () {
+        $this->mockClient->shouldNotReceive('makeRequest');
+
+        expect(fn () => $this->service->issueAccessToken(''))
+            ->toThrow(BlaaizException::class, 'Session ID is required');
+    });
+
+    it('sends redirect_url on createSession', function () {
+        $data = [
+            'customer_reference' => 'customer-123',
+            'idempotency_key' => 'request-123',
+            'requirements' => ['DOCUMENTS', 'SELFIE', 'FACE_MATCH'],
+            'redirect_url' => 'https://shop.example/kyc/done',
+        ];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/compliance/kyc/sessions', $data)
+            ->andReturn(['data' => ['id' => 'session-1']]);
+
+        $this->service->createSession($data);
+    });
+
     describe('PII reads', function () {
         it('gets applicant data with the Signa endpoint', function () {
             $this->mockClient

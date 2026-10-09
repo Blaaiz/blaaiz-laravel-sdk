@@ -687,6 +687,27 @@ describe('CustomerService', function () {
         expect($result)->toBe(['data' => ['status' => 'upgraded']]);
     });
 
+    it('calls makeRequest for linkKycSession', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/customer/customer-123/kyc-session', ['signa_session_id' => 'session-1'])
+            ->andReturn(['message' => 'ok', 'data' => ['verification_status' => 'VERIFIED']]);
+
+        $result = $this->service->linkKycSession('customer-123', 'session-1');
+        expect($result)->toBe(['message' => 'ok', 'data' => ['verification_status' => 'VERIFIED']]);
+    });
+
+    it('validates both ids for linkKycSession and makes no HTTP call', function () {
+        $this->mockClient->shouldNotReceive('makeRequest');
+
+        expect(fn () => $this->service->linkKycSession('', 'session-1'))
+            ->toThrow(BlaaizException::class, 'Customer ID is required');
+
+        expect(fn () => $this->service->linkKycSession('customer-123', ''))
+            ->toThrow(BlaaizException::class, 'signa_session_id is required');
+    });
+
     it('validates ids for deleteOwner', function () {
         expect(fn () => $this->service->deleteOwner('customer-123', ''))
             ->toThrow(BlaaizException::class, 'Owner ID is required');
