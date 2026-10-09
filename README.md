@@ -92,6 +92,7 @@ return [
 - `virtualBankAccounts()`
 - `transactions()`
 - `banks()`
+- `momoOperators()`
 - `currencies()`
 - `fees()`
 - `files()`

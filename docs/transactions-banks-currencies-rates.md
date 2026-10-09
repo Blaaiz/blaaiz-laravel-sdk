@@ -97,6 +97,25 @@ Required:
 
 - `iban`
 
+## Mobile money operators
+
+### `list(array $filters = [])`
+
+Lists the mobile money operators. Use the `id` of an operator as `mobile_money_operator_id` in a [mobile money payout](payouts.md#mobile_money).
+
+```php
+$operators = $blaaiz->momoOperators()->list([
+    'currency_id' => 'currency-id',
+]);
+```
+
+Optional filters:
+
+- `currency_id` (the destination currency id; use this one when you can)
+- `country_id`
+
+Each operator has `id`, `name`, `code`, and `country_id`.
+
 ## Currencies
 
 ### `list()`
@@ -104,6 +123,8 @@ Required:
 ```php
 $currencies = $blaaiz->currencies()->list();
 ```
+
+Each currency also has `country_id` and a `country` object with `id`, `name`, `short_name`, and `alt_short_name`. Use them to tell apart currencies that exist for more than one country, such as `XOF`.
 
 ## Rates
 

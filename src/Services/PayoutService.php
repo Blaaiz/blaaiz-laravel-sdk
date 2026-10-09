@@ -29,6 +29,8 @@ class PayoutService extends BaseService
             $this->validateAchWireFields($payoutData, $method);
         } elseif ($method === 'crypto') {
             $this->validateRequiredFields($payoutData, ['wallet_address', 'wallet_token', 'wallet_network']);
+        } elseif ($method === 'mobile_money') {
+            $this->validateRequiredFields($payoutData, ['phone_number', 'mobile_money_operator_id', 'account_name']);
         }
 
         return $this->client->makeRequest('POST', '/api/external/payout', $payoutData);

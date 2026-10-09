@@ -9,6 +9,7 @@ use Blaaiz\LaravelSdk\Services\CurrencyService;
 use Blaaiz\LaravelSdk\Services\CustomerService;
 use Blaaiz\LaravelSdk\Services\FeesService;
 use Blaaiz\LaravelSdk\Services\FileService;
+use Blaaiz\LaravelSdk\Services\MomoOperatorService;
 use Blaaiz\LaravelSdk\Services\PayoutService;
 use Blaaiz\LaravelSdk\Services\RateService;
 use Blaaiz\LaravelSdk\Services\RefundService;
@@ -37,6 +38,8 @@ class Blaaiz
 
     public BankService $banks;
 
+    public MomoOperatorService $momoOperators;
+
     public CurrencyService $currencies;
 
     public FeesService $fees;
@@ -64,6 +67,7 @@ class Blaaiz
         $this->virtualBankAccounts = new VirtualBankAccountService($this->client);
         $this->transactions = new TransactionService($this->client);
         $this->banks = new BankService($this->client);
+        $this->momoOperators = new MomoOperatorService($this->client);
         $this->currencies = new CurrencyService($this->client);
         $this->fees = new FeesService($this->client);
         $this->files = new FileService($this->client);
@@ -200,6 +204,11 @@ class Blaaiz
     public function banks(): BankService
     {
         return $this->banks;
+    }
+
+    public function momoOperators(): MomoOperatorService
+    {
+        return $this->momoOperators;
     }
 
     public function currencies(): CurrencyService

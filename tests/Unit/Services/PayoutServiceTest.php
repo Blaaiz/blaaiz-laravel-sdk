@@ -128,6 +128,28 @@ describe('PayoutService', function () {
             ->toThrow(BlaaizException::class, 'wallet_address is required');
     });
 
+    it('requires phone_number, mobile_money_operator_id and account_name for mobile_money method in initiate', function () {
+        $basePayoutData = [
+            'wallet_id' => 'w1',
+            'customer_id' => 'c1',
+            'method' => 'mobile_money',
+            'from_amount' => 100,
+            'from_currency_id' => 'USD',
+            'to_currency_id' => 'KES',
+        ];
+
+        expect(fn () => $this->service->initiate($basePayoutData))
+            ->toThrow(BlaaizException::class, 'phone_number is required');
+
+        expect(fn () => $this->service->initiate(array_merge($basePayoutData, ['phone_number' => '+254700000000'])))
+            ->toThrow(BlaaizException::class, 'mobile_money_operator_id is required');
+
+        expect(fn () => $this->service->initiate(array_merge($basePayoutData, [
+            'phone_number' => '+254700000000',
+            'mobile_money_operator_id' => 'op1',
+        ])))->toThrow(BlaaizException::class, 'account_name is required');
+    });
+
     it('requires ach/wire fields for ach method in initiate', function () {
         $basePayoutData = [
             'wallet_id' => 'w1',
@@ -176,6 +198,30 @@ describe('PayoutService', function () {
             'email' => 'test@example.com',
             'interac_first_name' => 'John',
             'interac_last_name' => 'Doe',
+        ];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('POST', '/api/external/payout', $payoutData)
+            ->andReturn(['data' => ['id' => 'payout-123']]);
+
+        $result = $this->service->initiate($payoutData);
+
+        expect($result)->toBe(['data' => ['id' => 'payout-123']]);
+    });
+
+    it('successfully initiates mobile_money payout', function () {
+        $payoutData = [
+            'wallet_id' => 'w1',
+            'customer_id' => 'c1',
+            'method' => 'mobile_money',
+            'from_amount' => 100,
+            'from_currency_id' => 'USD',
+            'to_currency_id' => 'KES',
+            'phone_number' => '+254700000000',
+            'mobile_money_operator_id' => 'op1',
+            'account_name' => 'Jane Doe',
         ];
 
         $this->mockClient
