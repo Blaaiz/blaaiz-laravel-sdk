@@ -17,7 +17,7 @@ Required:
 
 Optional:
 
-- `kyc_url` — receives Signa session callbacks
+- `kyc_url` — receives Signa and Signa ID callbacks
 
 ## `get()`
 
@@ -94,5 +94,7 @@ The returned array contains the webhook payload plus:
 - `timestamp`
 
 ### Verify Signa webhooks
+
+Signa and Signa ID callbacks go to your `kyc_url`. The events are `merchant.kyc.session.completed`, `merchant.kyc.session.expired`, and `signa_id.grant.revoked`. After `signa_id.grant.revoked`, the release methods return no data for `data.release_id`.
 
 Signa sends `kyc_url` callbacks with the same `x-blaaiz-timestamp` and `x-blaaiz-signature` headers and HMAC-SHA256 scheme as collection and payout webhooks. Use `verifySignature()` or `constructEvent()` for a Signa callback the same way you use them for other webhooks.
