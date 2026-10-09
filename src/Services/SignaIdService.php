@@ -14,6 +14,9 @@ class SignaIdService extends BaseService
     {
         $this->validateReleaseRequestData($requestData);
 
+        // A gapped array, for example from array_unique(), encodes as a JSON object and the API wants a list.
+        $requestData['scopes'] = array_values($requestData['scopes']);
+
         return $this->client->makeRequest('POST', self::BASE_PATH.'/release-requests', $requestData);
     }
 

@@ -32,6 +32,18 @@ describe('SignaIdService', function () {
             ->toBe(['data' => ['id' => 'release-1']]);
     });
 
+    it('sends the scopes as a list when the caller passes a gapped array', function () {
+        $gapped = [...$this->releaseRequest, 'scopes' => [0 => 'identity', 2 => 'address']];
+
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->withArgs(fn (string $method, string $path, array $body) => $body['scopes'] === ['identity', 'address'])
+            ->andReturn([]);
+
+        $this->service->createReleaseRequest($gapped);
+    });
+
     it('exchanges a release code', function () {
         $code = str_repeat('a', 43);
 
