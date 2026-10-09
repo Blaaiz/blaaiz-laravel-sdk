@@ -231,6 +231,36 @@ describe('BlaaizClient OAuth', function () {
         expect($scope)->toContain('payout:create');
     });
 
+    it('defaults to all scopes when the configured scope is blank', function (string $blankScope) {
+        $client = new BlaaizClient([
+            'client_id' => 'test-client-id',
+            'client_secret' => 'test-client-secret',
+            'oauth_scope' => $blankScope,
+        ]);
+
+        $reflection = new ReflectionClass($client);
+        $scopeProperty = $reflection->getProperty('oauthScope');
+        $scopeProperty->setAccessible(true);
+
+        expect($scopeProperty->getValue($client))
+            ->toBe(implode(' ', $reflection->getConstant('ALL_SCOPES')));
+    })->with(['empty' => '', 'whitespace' => '  ']);
+
+    it('resolves the default scopes through the container when BLAAIZ_OAUTH_SCOPE is unset', function () {
+        config()->set('blaaiz.client_id', 'test-client-id');
+        config()->set('blaaiz.client_secret', 'test-client-secret');
+        config()->set('blaaiz.oauth_scope', '');
+        app()->forgetInstance('blaaiz');
+
+        $blaaiz = app(\Blaaiz\LaravelSdk\Blaaiz::class);
+        $client = (new ReflectionClass($blaaiz))->getProperty('client');
+        $client->setAccessible(true);
+        $scopeProperty = (new ReflectionClass(BlaaizClient::class))->getProperty('oauthScope');
+        $scopeProperty->setAccessible(true);
+
+        expect($scopeProperty->getValue($client->getValue($blaaiz)))->toContain('wallet:read');
+    });
+
     it('exposes the default scopes including Signa scopes', function () {
         $scopes = (new ReflectionClass(BlaaizClient::class))->getConstant('ALL_SCOPES');
 
