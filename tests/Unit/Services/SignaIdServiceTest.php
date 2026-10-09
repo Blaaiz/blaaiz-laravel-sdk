@@ -77,6 +77,16 @@ describe('SignaIdService', function () {
         $this->service->getWalletStatus('0xabc', 8453);
     });
 
+    it('encodes the wallet address', function () {
+        $this->mockClient
+            ->shouldReceive('makeRequest')
+            ->once()
+            ->with('GET', '/api/v1/signa-id/public/wallets/0xabc%2Fdef/status')
+            ->andReturn(['verified' => false]);
+
+        $this->service->getWalletStatus('0xabc/def');
+    });
+
     it('validates the release request and makes no HTTP call', function () {
         $this->mockClient->shouldNotReceive('makeRequest');
 

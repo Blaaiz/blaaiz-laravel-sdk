@@ -246,6 +246,19 @@ describe('BlaaizClient OAuth', function () {
             ->toBe(implode(' ', $reflection->getConstant('ALL_SCOPES')));
     })->with(['empty' => '', 'whitespace' => '  ']);
 
+    it('keeps a configured scope and trims it', function () {
+        $client = new BlaaizClient([
+            'client_id' => 'test-client-id',
+            'client_secret' => 'test-client-secret',
+            'oauth_scope' => ' signa-id:release ',
+        ]);
+
+        $scopeProperty = (new ReflectionClass($client))->getProperty('oauthScope');
+        $scopeProperty->setAccessible(true);
+
+        expect($scopeProperty->getValue($client))->toBe('signa-id:release');
+    });
+
     it('resolves the default scopes through the container when BLAAIZ_OAUTH_SCOPE is unset', function () {
         config()->set('blaaiz.client_id', 'test-client-id');
         config()->set('blaaiz.client_secret', 'test-client-secret');
