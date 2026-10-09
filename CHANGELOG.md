@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/Blaaiz/blaaiz-laravel-sdk/compare/v1.5.0...v1.6.0) (2026-10-09)
+
+
+### Features
+
+* support mobile money payouts and list mobile money operators ([0c7f913](https://github.com/Blaaiz/blaaiz-laravel-sdk/commit/0c7f913ca546c5db5fc37bf45dd84a247632587d))
+
 ## [1.5.0](https://github.com/Blaaiz/blaaiz-laravel-sdk/compare/v1.4.0...v1.5.0) (2026-09-28)
 
 
