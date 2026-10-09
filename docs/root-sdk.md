@@ -63,6 +63,7 @@ The root SDK exposes service accessors:
 - `virtualBankAccounts()`
 - `transactions()`
 - `banks()`
+- `momoOperators()`
 - `currencies()`
 - `fees()`
 - `files()`

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Blaaiz\LaravelSdk\Services\VirtualBankAccountService virtualBankAccounts()
  * @method static \Blaaiz\LaravelSdk\Services\TransactionService transactions()
  * @method static \Blaaiz\LaravelSdk\Services\BankService banks()
+ * @method static \Blaaiz\LaravelSdk\Services\MomoOperatorService momoOperators()
  * @method static \Blaaiz\LaravelSdk\Services\CurrencyService currencies()
  * @method static \Blaaiz\LaravelSdk\Services\FeesService fees()
  * @method static \Blaaiz\LaravelSdk\Services\FileService files()

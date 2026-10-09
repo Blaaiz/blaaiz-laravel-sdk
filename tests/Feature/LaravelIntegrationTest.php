@@ -126,6 +126,7 @@ describe('Laravel Integration', function () {
             expect($blaaiz->virtualBankAccounts)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\VirtualBankAccountService::class);
             expect($blaaiz->transactions)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\TransactionService::class);
             expect($blaaiz->banks)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\BankService::class);
+            expect($blaaiz->momoOperators)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\MomoOperatorService::class);
             expect($blaaiz->currencies)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\CurrencyService::class);
             expect($blaaiz->fees)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\FeesService::class);
             expect($blaaiz->files)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\FileService::class);

@@ -51,6 +51,34 @@ For `EUR`:
 - `bic_code`
 - `account_name`
 
+### `mobile_money`
+
+Use this method when the destination currency supports mobile money. At this time these are `KES`, `UGX`, `TZS`, `XOF`, and `GHS`. To get the operator id, see [Mobile money operators](transactions-banks-currencies-rates.md#mobile-money-operators).
+
+```php
+$payout = $blaaiz->payouts()->initiate([
+    'wallet_id' => 'wallet-id',
+    'customer_id' => 'customer-id',
+    'method' => 'mobile_money',
+    'from_currency_id' => 'USD',
+    'to_currency_id' => 'currency-id',
+    'from_amount' => 100,
+    'phone_number' => '+254700000000',
+    'mobile_money_operator_id' => 'operator-id',
+    'account_name' => 'Jane Doe',
+]);
+```
+
+Required:
+
+- `phone_number` (international format, starts with `+`)
+- `mobile_money_operator_id`
+- `account_name`
+
+Use the currency id for `to_currency_id`. `XOF` exists for more than one country (Benin and Côte d'Ivoire). The API rejects the code `XOF` alone unless you also send `country_id` to pick the country.
+
+In the payout response and in webhooks, the recipient `account_number` is the phone number and `bank_name` is the operator name. In the payout response, `bank_code` is the operator code.
+
 ### `interac`
 
 ```php
