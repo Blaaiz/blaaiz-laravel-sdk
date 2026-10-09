@@ -23,6 +23,10 @@ Optional filters:
 
 Transaction list items include `merchant_reference`. The value is `null` when you did not set it.
 
+### Payer details in `source_information`
+
+For a collection, `source_information` carries these payer keys for a bank transfer: `account_name`, `account_number`, `bank_name`, `sort_code`, `bank_swift_code`, `description`, and `narration`. Each key is always present. The value is `null` when the collection method does not supply it. Only NGN collections set `narration`. All of these keys are `null` for payouts and swaps. For an Interac collection, `collection_email` and `collection_name` hold the payer.
+
 ### `get(string $transactionId)`
 
 ```php

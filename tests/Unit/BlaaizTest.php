@@ -10,6 +10,7 @@ use Blaaiz\LaravelSdk\Services\VirtualBankAccountService;
 use Blaaiz\LaravelSdk\Services\TransactionService;
 use Blaaiz\LaravelSdk\Services\BankService;
 use Blaaiz\LaravelSdk\Services\MomoOperatorService;
+use Blaaiz\LaravelSdk\Services\SignaIdService;
 use Blaaiz\LaravelSdk\Services\CurrencyService;
 use Blaaiz\LaravelSdk\Services\FeesService;
 use Blaaiz\LaravelSdk\Services\FileService;
@@ -58,6 +59,8 @@ describe('Blaaiz SDK main class', function () {
         expect($blaaiz->webhooks)->toBeInstanceOf(WebhookService::class);
         expect($blaaiz->rates)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\RateService::class);
         expect($blaaiz->swaps)->toBeInstanceOf(\Blaaiz\LaravelSdk\Services\SwapService::class);
+        expect($blaaiz->signaId)->toBeInstanceOf(SignaIdService::class);
+        expect($blaaiz->signaId())->toBe($blaaiz->signaId);
     });
 
     it('passes the same client instance to all services', function () {
@@ -84,7 +87,8 @@ describe('Blaaiz SDK main class', function () {
             $blaaiz->files,
             $blaaiz->webhooks,
             $blaaiz->rates,
-            $blaaiz->swaps
+            $blaaiz->swaps,
+            $blaaiz->signaId
         ];
 
         foreach ($services as $service) {
@@ -104,7 +108,7 @@ describe('Blaaiz SDK main class', function () {
 
         $serviceProperties = [
             'customers', 'collections', 'payouts', 'wallets', 'virtualBankAccounts',
-            'transactions', 'banks', 'momoOperators', 'currencies', 'fees', 'files', 'webhooks', 'rates', 'swaps'
+            'transactions', 'banks', 'momoOperators', 'currencies', 'fees', 'files', 'webhooks', 'rates', 'swaps', 'signaId'
         ];
 
         foreach ($serviceProperties as $propertyName) {
