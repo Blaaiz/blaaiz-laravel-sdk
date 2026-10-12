@@ -99,6 +99,13 @@ class SignaService extends BaseService
         return $this->client->makeRequest('POST', self::BASE_PATH.'/'.rawurlencode($sessionId).'/verification-link');
     }
 
+    public function issueAccessToken(string $sessionId): array
+    {
+        $this->validateSessionId($sessionId);
+
+        return $this->client->makeRequest('POST', self::BASE_PATH.'/'.rawurlencode($sessionId).'/access-token');
+    }
+
     public function getSessionApplicantData(string $sessionId): array
     {
         $this->validateSessionId($sessionId);

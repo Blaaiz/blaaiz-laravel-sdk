@@ -219,6 +219,21 @@ class CustomerService extends BaseService
         return $this->client->makeRequest('POST', "/api/external/customer/{$customerId}/upgrade-kyb-scope", $upgradeData);
     }
 
+    public function linkKycSession(string $customerId, string $signaSessionId): array
+    {
+        if (empty($customerId)) {
+            throw new BlaaizException('Customer ID is required');
+        }
+
+        if (empty($signaSessionId)) {
+            throw new BlaaizException('signa_session_id is required');
+        }
+
+        return $this->client->makeRequest('POST', "/api/external/customer/{$customerId}/kyc-session", [
+            'signa_session_id' => $signaSessionId,
+        ]);
+    }
+
     public function deleteOwner(string $customerId, string $ownerId): array
     {
         if (empty($customerId)) {

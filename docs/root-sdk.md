@@ -72,6 +72,7 @@ The root SDK exposes service accessors:
 - `swaps()`
 - `refunds()`
 - `signa()`
+- `signaId()`
 
 These are also available as public properties on the underlying SDK instance.
 

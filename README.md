@@ -47,6 +47,8 @@ $wallets = Blaaiz::wallets()->list();
 
 When both OAuth credentials and an API key are configured, OAuth is used.
 
+The SDK does not request the `signa-id:release` scope by default. To call the `signaId()` release methods, set the OAuth scope to `signa-id:release`, preferably on a dedicated credential. See [Signa ID release](docs/signa.md#signa-id-release).
+
 ### Publish configuration
 
 ```bash
@@ -101,6 +103,7 @@ return [
 - `swaps()`
 - `refunds()`
 - `signa()`
+- `signaId()`
 
 These services are also exposed as public properties on the underlying SDK instance.
 
@@ -194,7 +197,7 @@ $session = Blaaiz::signa()->createSession([
 $sessionId = $session['data']['data']['id'];
 ```
 
-See [Signa](docs/signa.md) for the full set of methods: list, get, submit, cancel, document uploads, verification links, and reading captured applicant data and documents.
+See [Signa](docs/signa.md) for the full set of methods: list, get, submit, cancel, document uploads, verification links, web SDK access tokens, reading captured applicant data and documents, and Signa ID release. To link an approved Signa session to a customer, see [Verify a customer with a Signa session](docs/customers.md#verify-a-customer-with-a-signa-session).
 
 ## API Reference
 

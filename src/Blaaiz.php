@@ -13,6 +13,7 @@ use Blaaiz\LaravelSdk\Services\MomoOperatorService;
 use Blaaiz\LaravelSdk\Services\PayoutService;
 use Blaaiz\LaravelSdk\Services\RateService;
 use Blaaiz\LaravelSdk\Services\RefundService;
+use Blaaiz\LaravelSdk\Services\SignaIdService;
 use Blaaiz\LaravelSdk\Services\SignaService;
 use Blaaiz\LaravelSdk\Services\SwapService;
 use Blaaiz\LaravelSdk\Services\TransactionService;
@@ -56,6 +57,8 @@ class Blaaiz
 
     public SignaService $signa;
 
+    public SignaIdService $signaId;
+
     public function __construct(array $options = [])
     {
         $this->client = new BlaaizClient($options);
@@ -76,6 +79,7 @@ class Blaaiz
         $this->swaps = new SwapService($this->client);
         $this->refunds = new RefundService($this->client);
         $this->signa = new SignaService($this->client);
+        $this->signaId = new SignaIdService($this->client);
     }
 
     public function testConnection(): bool
@@ -249,5 +253,10 @@ class Blaaiz
     public function signa(): SignaService
     {
         return $this->signa;
+    }
+
+    public function signaId(): SignaIdService
+    {
+        return $this->signaId;
     }
 }

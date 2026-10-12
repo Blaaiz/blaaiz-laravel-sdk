@@ -207,6 +207,26 @@ Required:
 
 - `owners` (array with at least one owner; the ownership must sum to 100)
 
+## `linkKycSession(string $customerId, string $signaSessionId)`
+
+### Verify a customer with a Signa session
+
+If the person already passed a Signa session of your business, link that session to an individual customer. The person does not send their documents again.
+
+```php
+$result = $blaaiz->customers()->linkKycSession('customer-id', 'signa-session-id');
+$status = $result['data']['data']['verification_status']; // VERIFIED
+```
+
+Required:
+
+- `customerId`
+- `signaSessionId`
+
+The call needs the `customer:write` and `compliance-kyc:pii:read` scopes. The session must be `APPROVED`, include `DOCUMENTS`, and be approved in the last 365 days. The customer details must agree with the verified person. If a condition fails, the API returns HTTP 400, 409, or 422, and the message names the condition.
+
+On success, the customer becomes `VERIFIED` and a `customer.status_changed` webhook fires. Blaaiz then copies the verified name, date of birth, document details, and images to the customer.
+
 ## `deleteOwner(string $customerId, string $ownerId)`
 
 ```php

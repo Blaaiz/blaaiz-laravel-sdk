@@ -36,7 +36,10 @@ class BlaaizClient
     {
         $this->clientId = $options['client_id'] ?? '';
         $this->clientSecret = $options['client_secret'] ?? '';
-        $this->oauthScope = $options['oauth_scope'] ?? implode(' ', self::ALL_SCOPES);
+        // The published config defaults BLAAIZ_OAUTH_SCOPE to '', and a token request with an
+        // empty scope gets a token with no scopes, so treat blank like unset.
+        $oauthScope = trim((string) ($options['oauth_scope'] ?? ''));
+        $this->oauthScope = $oauthScope !== '' ? $oauthScope : implode(' ', self::ALL_SCOPES);
         $this->apiKey = $options['api_key'] ?? '';
 
         $this->useOAuth = !empty($this->clientId) && !empty($this->clientSecret);
