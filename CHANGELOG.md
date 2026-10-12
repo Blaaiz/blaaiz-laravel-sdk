@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.0](https://github.com/Blaaiz/blaaiz-laravel-sdk/compare/v1.6.0...v1.7.0) (2026-10-12)
+
+
+### Features
+
+* **signa:** add Signa ID release, web SDK access tokens and customer linking ([707daf9](https://github.com/Blaaiz/blaaiz-laravel-sdk/commit/707daf9bd352d0339e9027331c409fb75e85411e))
+
+
+### Bug Fixes
+
+* **oauth:** request the default scopes when BLAAIZ_OAUTH_SCOPE is blank ([df80d3a](https://github.com/Blaaiz/blaaiz-laravel-sdk/commit/df80d3a88d4644935048c44110b70af03bd2137a))
+
 ## [1.6.0](https://github.com/Blaaiz/blaaiz-laravel-sdk/compare/v1.5.0...v1.6.0) (2026-10-09)
 
 
